@@ -16,6 +16,11 @@ struct SottoApp: App {
             SettingsView()
                 .environment(coordinator)
                 .frame(minWidth: 500, minHeight: 400)
+                .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
+                    guard let window = notification.object as? NSWindow,
+                          window.identifier?.rawValue.contains("settings") == true else { return }
+                    NSApp.setActivationPolicy(.accessory)
+                }
         }
         .windowResizability(.contentMinSize)
         .defaultSize(width: 700, height: 500)
@@ -40,13 +45,11 @@ private struct MenuBarContentView: View {
             NSApp.setActivationPolicy(.regular)
             NSApp.activate(ignoringOtherApps: true)
         }
-        .keyboardShortcut(",")
 
         Divider()
 
         Button("Quit Sotto") {
             NSApp.terminate(nil)
         }
-        .keyboardShortcut("q")
     }
 }
