@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		59E1C9E72FA7044B0038868E /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 59E1C9E62FA7044B0038868E /* WhisperKit */; };
+		59E1CA832FA859070038868E /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 59E1CA822FA859070038868E /* AppIcon.icon */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -31,6 +32,7 @@
 		59E1C9892FA7008B0038868E /* Sotto.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sotto.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		59E1C9982FA7008C0038868E /* SottoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SottoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		59E1C9A22FA7008C0038868E /* SottoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SottoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		59E1CA822FA859070038868E /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -84,6 +86,7 @@
 				59E1C99B2FA7008C0038868E /* SottoTests */,
 				59E1C9A52FA7008C0038868E /* SottoUITests */,
 				59E1C98A2FA7008B0038868E /* Products */,
+				59E1CA822FA859070038868E /* AppIcon.icon */,
 			);
 			sourceTree = "<group>";
 		};
@@ -221,6 +224,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59E1CA832FA859070038868E /* AppIcon.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

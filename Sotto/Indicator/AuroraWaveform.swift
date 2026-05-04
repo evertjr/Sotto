@@ -3,6 +3,9 @@ import SwiftUI
 struct AuroraWaveform: View {
     let level: Float
 
+    @State private var smoothedLevel: Float = 0
+    @State private var lastTime: Double = 0
+
     private static let waveConfigs: [(color: Color, freq: Double, speed: Double, phase: Double, amp: Double)] = [
         (.cyan,            2.0, 2.5, 0.0, 0.7),
         (.cyan.opacity(0.5), 3.5, 1.8, 1.2, 0.5),
@@ -15,10 +18,16 @@ struct AuroraWaveform: View {
     var body: some View {
         TimelineView(.animation) { timeline in
             let t = timeline.date.timeIntervalSinceReferenceDate
+            let dt = lastTime > 0 ? min(Float(t - lastTime), 0.05) : 0.016
+            let rise: Float = 12
+            let fall: Float = 6
+            let speed = level > smoothedLevel ? rise : fall
+            let interp = 1 - exp(-speed * dt)
+            let currentLevel = smoothedLevel + (level - smoothedLevel) * interp
 
             Canvas { context, size in
                 let midY = size.height / 2
-                let amplitude = CGFloat(level) * midY * 0.9 + midY * 0.03
+                let amplitude = CGFloat(currentLevel) * midY * 0.9 + midY * 0.03
 
                 for config in Self.waveConfigs {
                     let points = wavePoints(
@@ -49,6 +58,10 @@ struct AuroraWaveform: View {
                     startPoint: .leading,
                     endPoint: .trailing
                 )
+            }
+            .onChange(of: t) { _, _ in
+                smoothedLevel = currentLevel
+                lastTime = t
             }
         }
     }

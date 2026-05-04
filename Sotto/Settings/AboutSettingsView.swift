@@ -5,9 +5,9 @@ struct AboutSettingsView: View {
         VStack(spacing: 20) {
             Spacer()
 
-            Image(systemName: "waveform")
-                .font(.system(size: 48))
-                .foregroundStyle(.tint)
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 96, height: 96)
 
             Text("Sotto")
                 .font(.largeTitle)
