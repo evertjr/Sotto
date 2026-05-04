@@ -9,7 +9,7 @@ struct GeneralSettingsView: View {
 
         VStack(spacing: 0) {
             if !coordinator.needsMicPermission {
-                AuroraWaveform(level: coordinator.audioDeviceService.previewAudioLevel)
+                AuroraWaveform(level: coordinator.audioDeviceService.previewAudioLevel, preset: coordinator.waveformPreset)
                     .frame(height: 60)
                     .frame(maxWidth: 400)
                     .frame(maxWidth: .infinity)
@@ -46,11 +46,37 @@ struct GeneralSettingsView: View {
                     }
                 }
 
+                Section("Appearance") {
+                    Picker("Waveform Color", selection: $coord.waveformPreset) {
+                        ForEach(WaveformColorPreset.allCases) { preset in
+                            HStack(spacing: 6) {
+                                WaveformPresetSwatch(preset: preset)
+                                Text(preset.displayName)
+                            }
+                            .tag(preset)
+                        }
+                    }
+                }
+
                 Section("Feedback") {
                     Toggle("Sound feedback", isOn: $coord.soundFeedbackEnabled)
                 }
             }
             .formStyle(.grouped)
+        }
+    }
+}
+
+private struct WaveformPresetSwatch: View {
+    let preset: WaveformColorPreset
+
+    var body: some View {
+        HStack(spacing: 1) {
+            ForEach(0..<min(preset.colors.count, 4), id: \.self) { i in
+                Circle()
+                    .fill(preset.colors[i])
+                    .frame(width: 8, height: 8)
+            }
         }
     }
 }

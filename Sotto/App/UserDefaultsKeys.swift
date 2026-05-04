@@ -15,6 +15,7 @@ enum UserDefaultsKeys {
     static let soundRecordingStarted = "soundRecordingStarted"
     static let soundTranscriptionSuccess = "soundTranscriptionSuccess"
     static let soundError = "soundError"
+    static let waveformColorPreset = "waveformColorPreset"
 
     // Hotkeys
     static let hybridHotkey = "hybridHotkey"

@@ -30,6 +30,9 @@ final class DictationCoordinator {
     var soundFeedbackEnabled: Bool {
         didSet { UserDefaults.standard.set(soundFeedbackEnabled, forKey: UserDefaultsKeys.soundFeedbackEnabled) }
     }
+    var waveformPreset: WaveformColorPreset {
+        didSet { UserDefaults.standard.set(waveformPreset.rawValue, forKey: UserDefaultsKeys.waveformColorPreset) }
+    }
 
     let statePublisher = PassthroughSubject<State, Never>()
 
@@ -66,6 +69,8 @@ final class DictationCoordinator {
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
         self.indicatorStyle = UserDefaults.standard.string(forKey: UserDefaultsKeys.indicatorStyle)
             .flatMap { IndicatorStyle(rawValue: $0) } ?? .notch
+        self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
+            .flatMap { WaveformColorPreset(rawValue: $0) } ?? .aurora
     }
 
     private var floatingIndicator: FloatingIndicatorController?

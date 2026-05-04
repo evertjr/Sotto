@@ -1,18 +1,62 @@
 import SwiftUI
 
+enum WaveformColorPreset: String, CaseIterable, Identifiable {
+    case aurora
+    case ocean
+    case violet
+    case rose
+    case emerald
+    case mono
+    case pride
+
+    var id: String { rawValue }
+
+    var displayName: String {
+        switch self {
+        case .aurora: "Aurora"
+        case .ocean: "Ocean"
+        case .violet: "Violet"
+        case .rose: "Rosé"
+        case .emerald: "Emerald"
+        case .mono: "Mono"
+        case .pride: "Pride"
+        }
+    }
+
+    var colors: [Color] {
+        switch self {
+        case .aurora:
+            [.cyan, .cyan.opacity(0.5), .purple, .purple.opacity(0.4), .blue, .mint.opacity(0.5)]
+        case .ocean:
+            [.blue, .blue.opacity(0.5), .cyan, .teal.opacity(0.6), .indigo.opacity(0.5), .mint.opacity(0.4)]
+        case .violet:
+            [.purple, .purple.opacity(0.5), .indigo, .indigo.opacity(0.5), .pink.opacity(0.4), .blue.opacity(0.3)]
+        case .rose:
+            [.pink, .pink.opacity(0.5), .red.opacity(0.6), .orange.opacity(0.4), .purple.opacity(0.4), .pink.opacity(0.3)]
+        case .emerald:
+            [.green, .green.opacity(0.5), .mint, .teal.opacity(0.5), .cyan.opacity(0.4), .green.opacity(0.3)]
+        case .mono:
+            [.white, .white.opacity(0.5), .gray, .gray.opacity(0.5), .white.opacity(0.4), .gray.opacity(0.3)]
+        case .pride:
+            [.red, .orange, .yellow, .green, .blue, .purple]
+        }
+    }
+}
+
 struct AuroraWaveform: View {
     let level: Float
+    var preset: WaveformColorPreset = .aurora
 
     @State private var smoothedLevel: Float = 0
     @State private var lastTime: Double = 0
 
-    private static let waveConfigs: [(color: Color, freq: Double, speed: Double, phase: Double, amp: Double)] = [
-        (.cyan,            2.0, 2.5, 0.0, 0.7),
-        (.cyan.opacity(0.5), 3.5, 1.8, 1.2, 0.5),
-        (.purple,          1.8, 3.0, 2.5, 0.8),
-        (.purple.opacity(0.4), 4.0, 1.4, 4.0, 0.4),
-        (.blue,            2.8, 2.2, 5.0, 0.6),
-        (.mint.opacity(0.5), 5.0, 3.5, 6.0, 0.35),
+    private static let waveMotion: [(freq: Double, speed: Double, phase: Double, amp: Double)] = [
+        (2.0, 2.5, 0.0, 0.7),
+        (3.5, 1.8, 1.2, 0.5),
+        (1.8, 3.0, 2.5, 0.8),
+        (4.0, 1.4, 4.0, 0.4),
+        (2.8, 2.2, 5.0, 0.6),
+        (5.0, 3.5, 6.0, 0.35),
     ]
 
     var body: some View {
@@ -28,22 +72,24 @@ struct AuroraWaveform: View {
             Canvas { context, size in
                 let midY = size.height / 2
                 let amplitude = CGFloat(currentLevel) * midY * 0.9 + midY * 0.03
+                let colors = preset.colors
 
-                for config in Self.waveConfigs {
+                for (i, motion) in Self.waveMotion.enumerated() {
+                    let color = colors[i % colors.count]
                     let points = wavePoints(
                         in: size, time: t,
-                        frequency: config.freq, speed: config.speed,
-                        phaseOffset: config.phase, amplitudeScale: config.amp,
+                        frequency: motion.freq, speed: motion.speed,
+                        phaseOffset: motion.phase, amplitudeScale: motion.amp,
                         amplitude: amplitude, midY: midY
                     )
                     let path = smoothPath(through: points)
 
                     context.drawLayer { glow in
                         glow.addFilter(.blur(radius: 3))
-                        glow.stroke(path, with: .color(config.color.opacity(0.4)), lineWidth: 2.5)
+                        glow.stroke(path, with: .color(color.opacity(0.4)), lineWidth: 2.5)
                     }
 
-                    context.stroke(path, with: .color(config.color.opacity(0.9)), lineWidth: 1)
+                    context.stroke(path, with: .color(color.opacity(0.9)), lineWidth: 1)
                 }
             }
             .blendMode(.plusLighter)

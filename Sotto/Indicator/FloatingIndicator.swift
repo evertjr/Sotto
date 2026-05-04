@@ -117,7 +117,7 @@ private struct FloatingPillView: View {
     let coordinator: DictationCoordinator
 
     var body: some View {
-        AuroraWaveform(level: coordinator.audioLevel)
+        AuroraWaveform(level: coordinator.audioLevel, preset: coordinator.waveformPreset)
             .frame(width: 140, height: 28)
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
