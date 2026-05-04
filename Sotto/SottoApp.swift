@@ -1,32 +1,52 @@
-//
-//  SottoApp.swift
-//  Sotto
-//
-//  Created by Evert Junior on 03/05/26.
-//
-
 import SwiftUI
-import SwiftData
+import AVFoundation
 
 @main
 struct SottoApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    @Environment(\.openWindow) private var openWindow
+    @State private var coordinator = DictationCoordinator()
 
     var body: some Scene {
-        WindowGroup {
-            ContentView()
+        MenuBarExtra("Sotto", systemImage: "waveform") {
+            MenuBarContentView(openWindow: openWindow)
         }
-        .modelContainer(sharedModelContainer)
+        .menuBarExtraStyle(.menu)
+
+        Window("Settings", id: "settings") {
+            SettingsView()
+                .environment(coordinator)
+                .frame(minWidth: 500, minHeight: 400)
+        }
+        .windowResizability(.contentMinSize)
+        .defaultSize(width: 700, height: 500)
+    }
+
+    init() {
+        let coord = DictationCoordinator()
+        _coordinator = State(initialValue: coord)
+
+        Task { @MainActor in
+            coord.start()
+        }
+    }
+}
+
+private struct MenuBarContentView: View {
+    let openWindow: OpenWindowAction
+
+    var body: some View {
+        Button("Settings...") {
+            openWindow(id: "settings")
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
+        }
+        .keyboardShortcut(",")
+
+        Divider()
+
+        Button("Quit Sotto") {
+            NSApp.terminate(nil)
+        }
+        .keyboardShortcut("q")
     }
 }
