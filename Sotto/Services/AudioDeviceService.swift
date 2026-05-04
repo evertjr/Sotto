@@ -141,7 +141,8 @@ final class AudioDeviceService: @unchecked Sendable {
             object: engine,
             queue: .main
         ) { [weak self] _ in
-            self?.handlePreviewConfigChange()
+            guard let self else { return }
+            Task { @MainActor in self.handlePreviewConfigChange() }
         }
     }
 

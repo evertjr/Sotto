@@ -4,115 +4,6 @@ import Carbon.HIToolbox
 import Combine
 import os
 
-struct UnifiedHotkey: Equatable, Hashable, Sendable, Codable {
-    let keyCode: UInt16
-    let modifierFlags: UInt
-    let isFn: Bool
-    let isDoubleTap: Bool
-    /// Physical modifier key codes for side-specific modifier combos.
-    /// Empty means legacy/generic matching by modifier flags only.
-    let modifierKeyCodes: Set<UInt16>
-    /// nil = keyboard hotkey; 0..N = mouse button number (macOS convention: 2=middle, 3=back, 4=forward)
-    let mouseButton: UInt16?
-
-    /// Sentinel keyCode for modifier-only combos (e.g. CMD+OPT).
-    /// 0x00 is the "A" key, so we use 0xFFFF which is not a real keyCode.
-    static let modifierComboKeyCode: UInt16 = 0xFFFF
-
-    enum Kind {
-        case fn
-        case modifierOnly
-        case modifierCombo
-        case keyWithModifiers
-        case bareKey
-        case mouseButton
-    }
-
-    var kind: Kind {
-        if mouseButton != nil { return .mouseButton }
-        if isFn { return .fn }
-        if modifierFlags == 0 && HotkeyService.modifierKeyCodes.contains(keyCode) { return .modifierOnly }
-        if keyCode == Self.modifierComboKeyCode && modifierFlags != 0 { return .modifierCombo }
-        if modifierFlags != 0 { return .keyWithModifiers }
-        return .bareKey
-    }
-
-    init(
-        keyCode: UInt16,
-        modifierFlags: UInt,
-        isFn: Bool,
-        isDoubleTap: Bool = false,
-        modifierKeyCodes: Set<UInt16> = []
-    ) {
-        self.keyCode = keyCode
-        self.modifierFlags = modifierFlags
-        self.isFn = isFn
-        self.isDoubleTap = isDoubleTap
-        self.modifierKeyCodes = modifierKeyCodes
-        self.mouseButton = nil
-    }
-
-    init(mouseButton: UInt16, isDoubleTap: Bool = false) {
-        self.keyCode = 0
-        self.modifierFlags = 0
-        self.isFn = false
-        self.isDoubleTap = isDoubleTap
-        self.modifierKeyCodes = []
-        self.mouseButton = mouseButton
-    }
-
-    // Backward-compatible decoding: old hotkeys without isDoubleTap/modifierKeyCodes/mouseButton decode correctly
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        keyCode = try container.decode(UInt16.self, forKey: .keyCode)
-        modifierFlags = try container.decode(UInt.self, forKey: .modifierFlags)
-        isFn = try container.decode(Bool.self, forKey: .isFn)
-        isDoubleTap = try container.decodeIfPresent(Bool.self, forKey: .isDoubleTap) ?? false
-        modifierKeyCodes = try container.decodeIfPresent(Set<UInt16>.self, forKey: .modifierKeyCodes) ?? []
-        mouseButton = try container.decodeIfPresent(UInt16.self, forKey: .mouseButton)
-    }
-
-    func conflicts(with other: UnifiedHotkey) -> Bool {
-        if self == other { return true }
-        guard keyCode == other.keyCode,
-              modifierFlags == other.modifierFlags,
-              isFn == other.isFn,
-              mouseButton == other.mouseButton else {
-            return false
-        }
-
-        if kind == .modifierCombo, other.kind == .modifierCombo {
-            return modifierKeyCodes.isEmpty
-                || other.modifierKeyCodes.isEmpty
-                || modifierKeyCodes == other.modifierKeyCodes
-        }
-
-        return isDoubleTap != other.isDoubleTap
-    }
-}
-
-enum HotkeySlotType: String, CaseIterable, Sendable {
-    case hybrid
-    case pushToTalk
-    case toggle
-    case promptPalette
-    case recentTranscriptions
-    case copyLastTranscription
-    case recorderToggle
-
-    var defaultsKey: String {
-        switch self {
-        case .hybrid: return UserDefaultsKeys.hybridHotkey
-        case .pushToTalk: return UserDefaultsKeys.pttHotkey
-        case .toggle: return UserDefaultsKeys.toggleHotkey
-        case .promptPalette: return UserDefaultsKeys.promptPaletteHotkey
-        case .recentTranscriptions: return UserDefaultsKeys.recentTranscriptionsHotkey
-        case .copyLastTranscription: return UserDefaultsKeys.copyLastTranscriptionHotkey
-        case .recorderToggle: return UserDefaultsKeys.recorderToggleHotkey
-        }
-    }
-}
-
 /// Manages global hotkeys for dictation and standalone app actions.
 final class HotkeyService: ObservableObject {
     struct MenuShortcutDescriptor: Equatable, Sendable {
@@ -1270,7 +1161,7 @@ final class HotkeyService: ObservableObject {
 
     // MARK: - Display Name
 
-    nonisolated static func menuShortcutDescriptor(for hotkey: UnifiedHotkey) -> MenuShortcutDescriptor? {
+    static func menuShortcutDescriptor(for hotkey: UnifiedHotkey) -> MenuShortcutDescriptor? {
         guard !hotkey.isDoubleTap,
               hotkey.mouseButton == nil,
               !hotkey.isFn,
@@ -1288,7 +1179,7 @@ final class HotkeyService: ObservableObject {
         )
     }
 
-    nonisolated static func displayName(for hotkey: UnifiedHotkey) -> String {
+    static func displayName(for hotkey: UnifiedHotkey) -> String {
         if let button = hotkey.mouseButton {
             let baseName = mouseButtonName(for: button)
             return hotkey.isDoubleTap ? "\(baseName) x2" : baseName

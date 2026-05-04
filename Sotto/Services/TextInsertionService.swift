@@ -5,11 +5,10 @@ import Carbon.HIToolbox
 import os
 import os.log
 
-private let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "TypeWhisper", category: "TextInsertionService")
-
 /// Inserts transcribed text into the active application via clipboard + simulated Cmd+V.
 @MainActor
 final class TextInsertionService {
+    nonisolated static let logger = Logger(subsystem: "com.sotto.app", category: "TextInsertionService")
     typealias FocusedTextSnapshot = (value: String?, selectedText: String?, selectedRange: NSRange?)
 
     var accessibilityGrantedOverride: Bool?
@@ -202,7 +201,7 @@ enum InsertionResult {
             let script = NSAppleScript(source: source)
             let descriptor = script?.executeAndReturnError(&error)
             if let errorDict = error {
-                logger.warning("NSAppleScript error: \(errorDict)")
+                Self.logger.warning("NSAppleScript error: \(errorDict)")
             }
             if let stringValue = descriptor?.stringValue {
                 resultState.withLock { $0 = stringValue }
@@ -212,7 +211,7 @@ enum InsertionResult {
 
         let waitResult = semaphore.wait(timeout: .now() + timeout)
         if waitResult == .timedOut {
-            logger.warning("NSAppleScript timed out after \(timeout)s")
+            Self.logger.warning("NSAppleScript timed out after \(timeout)s")
             return nil
         }
 

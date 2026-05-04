@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import Foundation
 import os
@@ -50,6 +51,7 @@ final class DictationCoordinator {
     private var insertingResetTask: Task<Void, Never>?
     private var isStopInFlight = false
     private var cancellables = Set<AnyCancellable>()
+    private var audioPlayer: AVAudioPlayer?
 
     // MARK: - Init
 
@@ -114,6 +116,10 @@ final class DictationCoordinator {
     // MARK: - Start Recording
 
     func startDictation() {
+        Task { await _startDictation() }
+    }
+
+    private func _startDictation() async {
         transcriptionTask?.cancel()
         transcriptionTask = nil
         insertingResetTask?.cancel()
@@ -133,11 +139,14 @@ final class DictationCoordinator {
 
         do {
             audioDeviceService.stopPreview()
+            setState(.recording)
+
+            if soundFeedbackEnabled {
+                await playActivationSound()
+            }
+
             audioCaptureService.selectedDeviceID = audioDeviceService.selectedDeviceID
             try audioCaptureService.startCapture()
-
-            soundService.play(.recordingStarted, enabled: soundFeedbackEnabled)
-            setState(.recording)
             hotkeyService.resetKeyDownTime()
             partialText = ""
             isStopInFlight = false
@@ -183,14 +192,15 @@ final class DictationCoordinator {
         transcriptionTask = Task {
             do {
                 let language = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedLanguage)
+                logger.info("Starting transcription with \(samples.count) samples")
                 let result = try await modelManager.transcribe(samples: samples, language: language)
+                logger.info("Transcription result: '\(result.text.prefix(100))'")
 
                 guard !Task.isCancelled else { return }
 
                 let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else {
-                    showFeedback("No speech recognized")
-                    soundService.play(.error, enabled: soundFeedbackEnabled)
+                    resetState()
                     return
                 }
 
@@ -279,6 +289,14 @@ final class DictationCoordinator {
                 self.audioLevel = self.audioCaptureService.audioLevel
             }
         }
+    }
+
+    private func playActivationSound() async {
+        guard let url = Bundle.main.url(forResource: "recording_start", withExtension: "wav"),
+              let player = try? AVAudioPlayer(contentsOf: url) else { return }
+        audioPlayer = player
+        player.play()
+        try? await Task.sleep(for: .seconds(player.duration))
     }
 
     private func stopRecordingTimer() {

@@ -1,5 +1,4 @@
 import Foundation
-import WhisperKit
 import os.log
 
 private let logger = Logger(subsystem: "com.sotto.app", category: "ModelManager")
@@ -8,6 +7,28 @@ struct SottoTranscription: Sendable {
     let text: String
     let detectedLanguage: String?
     let duration: TimeInterval
+}
+
+struct SottoModel: Identifiable {
+    let id: String
+    let displayName: String
+    let size: String
+    let engine: Engine
+
+    enum Engine: String, CaseIterable {
+        case whisperKit = "WhisperKit"
+        case parakeet = "Parakeet"
+    }
+}
+
+@MainActor
+protocol TranscriptionEngine {
+    var engineName: String { get }
+    func loadModel(_ model: SottoModel, onProgress: @escaping (Double) -> Void) async throws
+    func unloadModel()
+    func deleteModel(_ model: SottoModel)
+    func isModelDownloaded(_ model: SottoModel) -> Bool
+    func transcribe(samples: [Float], language: String?) async throws -> SottoTranscription
 }
 
 @Observable
@@ -25,18 +46,20 @@ final class ModelManager {
     private(set) var selectedModelId: String?
     private(set) var loadedModelId: String?
 
-    private var whisperKit: WhisperKit?
-    private let modelsDirectory: URL
+    private var activeEngine: (any TranscriptionEngine)?
+    private let engines: [SottoModel.Engine: any TranscriptionEngine]
 
-    static let availableModels: [WhisperModel] = [
-        WhisperModel(id: "openai_whisper-tiny", displayName: "Tiny", size: "~39 MB"),
-        WhisperModel(id: "openai_whisper-base", displayName: "Base", size: "~74 MB"),
-        WhisperModel(id: "openai_whisper-small", displayName: "Small", size: "~244 MB"),
-        WhisperModel(id: "openai_whisper-large-v3_turbo", displayName: "Large v3 Turbo", size: "~800 MB"),
-        WhisperModel(id: "openai_whisper-large-v3", displayName: "Large v3", size: "~1.5 GB"),
+    static let availableModels: [SottoModel] = [
+        SottoModel(id: "openai_whisper-tiny", displayName: "Tiny", size: "~39 MB", engine: .whisperKit),
+        SottoModel(id: "openai_whisper-base", displayName: "Base", size: "~74 MB", engine: .whisperKit),
+        SottoModel(id: "openai_whisper-small", displayName: "Small", size: "~244 MB", engine: .whisperKit),
+        SottoModel(id: "openai_whisper-large-v3_turbo", displayName: "Large v3 Turbo", size: "~800 MB", engine: .whisperKit),
+        SottoModel(id: "openai_whisper-large-v3", displayName: "Large v3", size: "~1.5 GB", engine: .whisperKit),
+        SottoModel(id: "parakeet-tdt-0.6b-v2", displayName: "Parakeet v2", size: "~600 MB", engine: .parakeet),
+        SottoModel(id: "parakeet-tdt-0.6b-v3", displayName: "Parakeet v3", size: "~600 MB", engine: .parakeet),
     ]
 
-    var isModelReady: Bool { whisperKit != nil && loadedModelId != nil }
+    var isModelReady: Bool { activeEngine != nil && loadedModelId != nil }
     var canTranscribe: Bool { isModelReady }
 
     var activeModelName: String? {
@@ -44,10 +67,15 @@ final class ModelManager {
         return Self.availableModels.first { $0.id == loadedModelId }?.displayName
     }
 
+    var activeEngineName: String? {
+        activeEngine?.engineName
+    }
+
     init() {
-        self.modelsDirectory = AppConstants.appSupportDirectory
-            .appendingPathComponent("Models", isDirectory: true)
-        try? FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
+        self.engines = [
+            .whisperKit: WhisperKitEngine(),
+            .parakeet: ParakeetEngine(),
+        ]
 
         let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId)
         self.selectedModelId = savedId
@@ -57,51 +85,35 @@ final class ModelManager {
         }
     }
 
-    func loadModel(_ model: WhisperModel) async {
+    func loadModel(_ model: SottoModel) async {
+        guard let engine = engines[model.engine] else { return }
+
+        activeEngine?.unloadModel()
+        activeEngine = nil
+        loadedModelId = nil
+
         selectedModelId = model.id
         UserDefaults.standard.set(model.id, forKey: UserDefaultsKeys.selectedModelId)
 
         do {
-            let modelPath = modelsDirectory
-                .appendingPathComponent("argmaxinc")
-                .appendingPathComponent("whisperkit-coreml")
-                .appendingPathComponent(model.id)
-
-            let modelFolder: URL
-            if FileManager.default.fileExists(atPath: modelPath.path) {
+            if engine.isModelDownloaded(model) {
                 state = .loading
-                modelFolder = modelPath
             } else {
                 state = .downloading(progress: 0)
-                modelFolder = try await WhisperKit.download(
-                    variant: model.id,
-                    downloadBase: modelsDirectory
-                ) { progress in
-                    Task { @MainActor in
-                        self.state = .downloading(progress: progress.fractionCompleted)
-                    }
+            }
+
+            try await engine.loadModel(model) { [weak self] progress in
+                Task { @MainActor in
+                    self?.state = .downloading(progress: progress)
                 }
             }
 
-            state = .loading
-            let config = WhisperKitConfig(
-                modelFolder: modelFolder.path,
-                verbose: false,
-                logLevel: .error,
-                prewarm: false,
-                load: false,
-                download: false
-            )
-            let kit = try await WhisperKit(config)
-            try await kit.loadModels()
-            try await kit.prewarmModels()
-
-            whisperKit = kit
+            activeEngine = engine
             loadedModelId = model.id
             state = .ready
-            logger.info("Model \(model.displayName) loaded successfully")
+            logger.info("Model \(model.displayName) (\(model.engine.rawValue)) loaded")
         } catch {
-            whisperKit = nil
+            activeEngine = nil
             loadedModelId = nil
             state = .error(error.localizedDescription)
             logger.error("Failed to load model: \(error.localizedDescription)")
@@ -109,28 +121,19 @@ final class ModelManager {
     }
 
     func unloadModel() {
-        whisperKit = nil
+        activeEngine?.unloadModel()
+        activeEngine = nil
         loadedModelId = nil
         state = .notLoaded
     }
 
-    func deleteModel(_ model: WhisperModel) {
+    func deleteModel(_ model: SottoModel) {
         if loadedModelId == model.id { unloadModel() }
-        let path = modelsDirectory
-            .appendingPathComponent("models")
-            .appendingPathComponent("argmaxinc")
-            .appendingPathComponent("whisperkit-coreml")
-            .appendingPathComponent(model.id)
-        try? FileManager.default.removeItem(at: path)
+        engines[model.engine]?.deleteModel(model)
     }
 
-    func isModelDownloaded(_ model: WhisperModel) -> Bool {
-        let path = modelsDirectory
-            .appendingPathComponent("models")
-            .appendingPathComponent("argmaxinc")
-            .appendingPathComponent("whisperkit-coreml")
-            .appendingPathComponent(model.id)
-        return FileManager.default.fileExists(atPath: path.path)
+    func isModelDownloaded(_ model: SottoModel) -> Bool {
+        engines[model.engine]?.isModelDownloaded(model) ?? false
     }
 
     func restoreLastModel() async {
@@ -141,41 +144,11 @@ final class ModelManager {
     }
 
     func transcribe(samples: [Float], language: String?) async throws -> SottoTranscription {
-        guard let whisperKit else {
+        guard let engine = activeEngine else {
             throw TranscriptionError.engineNotConfigured
         }
-
-        let options = DecodingOptions(
-            verbose: false,
-            task: .transcribe,
-            language: language,
-            temperature: 0.0,
-            temperatureFallbackCount: 3,
-            usePrefillPrompt: true,
-            detectLanguage: language == nil,
-            skipSpecialTokens: true,
-            withoutTimestamps: false,
-            chunkingStrategy: .vad
-        )
-
-        let results = try await whisperKit.transcribe(
-            audioArray: samples,
-            decodeOptions: options
-        )
-
-        let text = results.map { $0.text }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
-        let detectedLanguage = results.first?.language
-        let duration = results.flatMap { $0.segments }.last.map { TimeInterval($0.end) } ?? 0
-
-        logger.info("Transcription: \(text.prefix(80))")
-        return SottoTranscription(text: text, detectedLanguage: detectedLanguage, duration: duration)
+        return try await engine.transcribe(samples: samples, language: language)
     }
-}
-
-struct WhisperModel: Identifiable {
-    let id: String
-    let displayName: String
-    let size: String
 }
 
 enum TranscriptionError: LocalizedError {

@@ -7,25 +7,16 @@ struct ModelSettingsView: View {
         let mm = coordinator.modelManager
 
         ScrollView {
-            VStack(spacing: 0) {
-                ForEach(ModelManager.availableModels) { model in
-                    ModelRow(
-                        model: model,
-                        isLoaded: mm.loadedModelId == model.id,
-                        isActive: mm.selectedModelId == model.id,
-                        isDownloaded: mm.isModelDownloaded(model),
-                        state: mm.state,
-                        onLoad: { Task { await mm.loadModel(model) } },
-                        onUnload: { mm.unloadModel() },
-                        onDelete: { mm.deleteModel(model) }
+            VStack(spacing: 20) {
+                ForEach(SottoModel.Engine.allCases, id: \.rawValue) { engine in
+                    let models = ModelManager.availableModels.filter { $0.engine == engine }
+                    EngineSection(
+                        engine: engine,
+                        models: models,
+                        modelManager: mm
                     )
-
-                    if model.id != ModelManager.availableModels.last?.id {
-                        Divider().padding(.leading, 16)
-                    }
                 }
             }
-            .background(.quinary, in: RoundedRectangle(cornerRadius: 10))
             .padding()
 
             if case .error(let message) = mm.state {
@@ -41,8 +32,44 @@ struct ModelSettingsView: View {
     }
 }
 
+private struct EngineSection: View {
+    let engine: SottoModel.Engine
+    let models: [SottoModel]
+    let modelManager: ModelManager
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(engine.rawValue)
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 4)
+                .padding(.bottom, 6)
+
+            VStack(spacing: 0) {
+                ForEach(models) { model in
+                    ModelRow(
+                        model: model,
+                        isLoaded: modelManager.loadedModelId == model.id,
+                        isActive: modelManager.selectedModelId == model.id,
+                        isDownloaded: modelManager.isModelDownloaded(model),
+                        state: modelManager.state,
+                        onLoad: { Task { await modelManager.loadModel(model) } },
+                        onUnload: { modelManager.unloadModel() },
+                        onDelete: { modelManager.deleteModel(model) }
+                    )
+
+                    if model.id != models.last?.id {
+                        Divider().padding(.leading, 44)
+                    }
+                }
+            }
+            .background(.quinary, in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
 private struct ModelRow: View {
-    let model: WhisperModel
+    let model: SottoModel
     let isLoaded: Bool
     let isActive: Bool
     let isDownloaded: Bool

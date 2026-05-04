@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		59E1C9E72FA7044B0038868E /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 59E1C9E62FA7044B0038868E /* WhisperKit */; };
 		59E1CA832FA859070038868E /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 59E1CA822FA859070038868E /* AppIcon.icon */; };
+		59E1CAC52FA8CB3E0038868E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 59E1CAC42FA8CB3E0038868E /* FluidAudio */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -58,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				59E1CAC52FA8CB3E0038868E /* FluidAudio in Frameworks */,
 				59E1C9E72FA7044B0038868E /* WhisperKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -121,6 +123,7 @@
 			name = Sotto;
 			packageProductDependencies = (
 				59E1C9E62FA7044B0038868E /* WhisperKit */,
+				59E1CAC42FA8CB3E0038868E /* FluidAudio */,
 			);
 			productName = Sotto;
 			productReference = 59E1C9892FA7008B0038868E /* Sotto.app */;
@@ -206,6 +209,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */,
+				59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 59E1C98A2FA7008B0038868E /* Products */;
@@ -602,6 +606,14 @@
 				kind = branch;
 			};
 		};
+		59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/FluidInference/FluidAudio.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -609,6 +621,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */;
 			productName = WhisperKit;
+		};
+		59E1CAC42FA8CB3E0038868E /* FluidAudio */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */;
+			productName = FluidAudio;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
