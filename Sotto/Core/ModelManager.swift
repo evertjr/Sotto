@@ -14,6 +14,10 @@ struct SottoModel: Identifiable {
     let displayName: String
     let size: String
     let engine: Engine
+    let speed: Double        // 0...1
+    let accuracy: Double     // 0...1
+    let languages: String
+    let description: String
 
     enum Engine: String, CaseIterable {
         case whisperKit = "WhisperKit"
@@ -50,13 +54,27 @@ final class ModelManager {
     private let engines: [SottoModel.Engine: any TranscriptionEngine]
 
     static let availableModels: [SottoModel] = [
-        SottoModel(id: "openai_whisper-tiny", displayName: "Tiny", size: "~39 MB", engine: .whisperKit),
-        SottoModel(id: "openai_whisper-base", displayName: "Base", size: "~74 MB", engine: .whisperKit),
-        SottoModel(id: "openai_whisper-small", displayName: "Small", size: "~244 MB", engine: .whisperKit),
-        SottoModel(id: "openai_whisper-large-v3_turbo", displayName: "Large v3 Turbo", size: "~800 MB", engine: .whisperKit),
-        SottoModel(id: "openai_whisper-large-v3", displayName: "Large v3", size: "~1.5 GB", engine: .whisperKit),
-        SottoModel(id: "parakeet-tdt-0.6b-v2", displayName: "Parakeet v2", size: "~600 MB", engine: .parakeet),
-        SottoModel(id: "parakeet-tdt-0.6b-v3", displayName: "Parakeet v3", size: "~600 MB", engine: .parakeet),
+        SottoModel(id: "openai_whisper-tiny", displayName: "Whisper Tiny", size: "~39 MB", engine: .whisperKit,
+                   speed: 0.95, accuracy: 0.4, languages: "99+ languages",
+                   description: "Fastest Whisper model, good for quick notes"),
+        SottoModel(id: "openai_whisper-base", displayName: "Whisper Base", size: "~74 MB", engine: .whisperKit,
+                   speed: 0.85, accuracy: 0.55, languages: "99+ languages",
+                   description: "Good balance for everyday use"),
+        SottoModel(id: "openai_whisper-small", displayName: "Whisper Small", size: "~244 MB", engine: .whisperKit,
+                   speed: 0.7, accuracy: 0.7, languages: "99+ languages",
+                   description: "Reliable accuracy across many languages"),
+        SottoModel(id: "openai_whisper-large-v3_turbo", displayName: "Whisper Large Turbo", size: "~800 MB", engine: .whisperKit,
+                   speed: 0.6, accuracy: 0.85, languages: "99+ languages",
+                   description: "Near-best accuracy with faster inference"),
+        SottoModel(id: "openai_whisper-large-v3", displayName: "Whisper Large v3", size: "~1.5 GB", engine: .whisperKit,
+                   speed: 0.35, accuracy: 0.95, languages: "99+ languages",
+                   description: "Highest accuracy for professional transcription"),
+        SottoModel(id: "parakeet-tdt-0.6b-v2", displayName: "Parakeet v2", size: "~600 MB", engine: .parakeet,
+                   speed: 0.95, accuracy: 0.9, languages: "English only",
+                   description: "Extremely fast, optimized for English"),
+        SottoModel(id: "parakeet-tdt-0.6b-v3", displayName: "Parakeet v3", size: "~600 MB", engine: .parakeet,
+                   speed: 0.9, accuracy: 0.9, languages: "25 European languages",
+                   description: "Fast and accurate with multilingual support"),
     ]
 
     var isModelReady: Bool { activeEngine != nil && loadedModelId != nil }

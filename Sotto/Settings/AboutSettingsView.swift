@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct AboutSettingsView: View {
+    @Environment(\.openWindow) private var openWindow
+
     var body: some View {
         VStack(spacing: 20) {
             Spacer()
@@ -18,6 +20,14 @@ struct AboutSettingsView: View {
 
             Text("Minimal voice dictation for macOS")
                 .foregroundStyle(.secondary)
+
+            Button("Show Setup Guide") {
+                UserDefaults.standard.set(false, forKey: "onboardingCompleted")
+                openWindow(id: "onboarding")
+                NSApp.activate(ignoringOtherApps: true)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.regular)
 
             Spacer()
         }
