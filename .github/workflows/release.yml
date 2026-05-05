@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Resolve packages
+        run: xcodebuild -resolvePackageDependencies -project Sotto.xcodeproj -scheme Sotto
+
+      - name: Build
+        run: |
+          xcodebuild -project Sotto.xcodeproj \
+            -scheme Sotto \
+            -configuration Release \
+            -derivedDataPath build \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO
+
+      - name: Create DMG
+        run: |
+          APP_PATH="build/Build/Products/Release/Sotto.app"
+          DMG_PATH="Sotto-${GITHUB_REF_NAME}.dmg"
+          hdiutil create -volname "Sotto" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_PATH"
+          echo "DMG_PATH=$DMG_PATH" >> $GITHUB_ENV
+
+      - name: Sign update for Sparkle
+        if: env.SPARKLE_PRIVATE_KEY != ''
+        env:
+          SPARKLE_PRIVATE_KEY: ${{ secrets.SPARKLE_PRIVATE_KEY }}
+        run: |
+          SPARKLE_SIGN=$(find build -name "sign_update" -type f | head -1)
+          if [ -n "$SPARKLE_SIGN" ]; then
+            SIGNATURE=$("$SPARKLE_SIGN" "$DMG_PATH" --ed-key-file <(echo "$SPARKLE_PRIVATE_KEY"))
+            echo "$SIGNATURE"
+            echo "SPARKLE_SIGNATURE=$SIGNATURE" >> $GITHUB_ENV
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.DMG_PATH }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

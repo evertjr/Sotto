@@ -4,6 +4,7 @@ import AVFoundation
 struct OnboardingView: View {
     let coordinator: DictationCoordinator
     @State private var step = 0
+    @State private var shortcutLabel = ""
     @Environment(\.dismiss) private var dismiss
     let onComplete: () -> Void
 
@@ -34,7 +35,7 @@ struct OnboardingView: View {
             Text("Welcome to Sotto")
                 .font(.largeTitle.weight(.bold))
 
-            Text("Minimal voice dictation for macOS.\nSpeak naturally, and Sotto types it for you.")
+            Text("The simplest voice dictation for macOS.\nSpeak naturally, and Sotto types it for you.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 360)
@@ -52,9 +53,17 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            Image(systemName: "mic.circle.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(.tint)
+            if coordinator.audioCaptureService.micPermissionGranted {
+                AuroraWaveform(level: coordinator.audioDeviceService.previewAudioLevel, preset: coordinator.waveformPreset)
+                    .frame(height: 60)
+                    .frame(maxWidth: 300)
+                    .onAppear { coordinator.audioDeviceService.startPreview() }
+                    .onDisappear { coordinator.audioDeviceService.stopPreview() }
+            } else {
+                Image(systemName: "mic.circle.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(.tint)
+            }
 
             Text("Microphone Access")
                 .font(.title.weight(.bold))
@@ -103,34 +112,49 @@ struct OnboardingView: View {
                 .frame(maxWidth: 360)
 
             HotkeyRecorderView(
-                label: hotkeyLabel,
+                label: shortcutLabel,
                 title: "",
                 onRecord: { hotkey in
                     coordinator.hotkeyService.updateHotkey(hotkey, for: .hybrid)
+                    shortcutLabel = HotkeyService.displayName(for: hotkey)
                 },
                 onClear: {
                     coordinator.hotkeyService.clearHotkey(for: .hybrid)
+                    shortcutLabel = ""
                 }
             )
             .onAppear {
                 HotkeyRecorderView.hotkeyService = coordinator.hotkeyService
+                if let data = UserDefaults.standard.data(forKey: HotkeySlotType.hybrid.defaultsKey),
+                   let hotkey = try? JSONDecoder().decode(UnifiedHotkey.self, from: data) {
+                    shortcutLabel = HotkeyService.displayName(for: hotkey)
+                }
             }
             .frame(maxWidth: 300)
 
             Spacer()
 
-            nextButton("Continue", enabled: !hotkeyLabel.isEmpty)
+            nextButton("Continue", enabled: !shortcutLabel.isEmpty)
         }
         .padding(40)
     }
 
-    private var hotkeyLabel: String {
-        guard let data = UserDefaults.standard.data(forKey: HotkeySlotType.hybrid.defaultsKey),
-              let hotkey = try? JSONDecoder().decode(UnifiedHotkey.self, from: data) else { return "" }
-        return HotkeyService.displayName(for: hotkey)
+    // MARK: - Model
+
+    private var recommendedModel: SottoModel {
+        let ramGB = ProcessInfo.processInfo.physicalMemory / (1024 * 1024 * 1024)
+        if ramGB >= 16 {
+            return ModelManager.availableModels.first { $0.id == "parakeet-tdt-0.6b-v3" }!
+        } else if ramGB >= 8 {
+            return ModelManager.availableModels.first { $0.id == "parakeet-tdt-0.6b-v3" }!
+        } else {
+            return ModelManager.availableModels.first { $0.id == "openai_whisper-small" }!
+        }
     }
 
-    // MARK: - Model
+    private var otherModels: [SottoModel] {
+        ModelManager.availableModels.filter { $0.id != recommendedModel.id }
+    }
 
     private var modelStep: some View {
         VStack(spacing: 16) {
@@ -142,15 +166,44 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
 
             ScrollView {
-                VStack(spacing: 8) {
-                    ForEach(ModelManager.availableModels) { model in
+                VStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "star.fill")
+                                .font(.caption)
+                                .foregroundStyle(.orange)
+                            Text("Recommended for your Mac")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.horizontal, 4)
+
                         OnboardingModelCard(
-                            model: model,
-                            isSelected: coordinator.modelManager.selectedModelId == model.id,
-                            isLoaded: coordinator.modelManager.loadedModelId == model.id,
+                            model: recommendedModel,
+                            isSelected: coordinator.modelManager.selectedModelId == recommendedModel.id,
+                            isLoaded: coordinator.modelManager.loadedModelId == recommendedModel.id,
                             state: coordinator.modelManager.state,
-                            onSelect: { Task { await coordinator.modelManager.loadModel(model) } }
+                            onSelect: { Task { await coordinator.modelManager.loadModel(recommendedModel) } },
+                            isRecommended: true
                         )
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("All Models")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .padding(.horizontal, 4)
+                            .padding(.top, 4)
+
+                        ForEach(otherModels) { model in
+                            OnboardingModelCard(
+                                model: model,
+                                isSelected: coordinator.modelManager.selectedModelId == model.id,
+                                isLoaded: coordinator.modelManager.loadedModelId == model.id,
+                                state: coordinator.modelManager.state,
+                                onSelect: { Task { await coordinator.modelManager.loadModel(model) } }
+                            )
+                        }
                     }
                 }
                 .padding(.horizontal, 24)
@@ -190,6 +243,7 @@ private struct OnboardingModelCard: View {
     let isLoaded: Bool
     let state: ModelManager.ModelState
     let onSelect: () -> Void
+    var isRecommended: Bool = false
 
     private var isThisActive: Bool {
         isSelected && !isLoaded
@@ -252,12 +306,15 @@ private struct OnboardingModelCard: View {
             }
             .padding(12)
             .background(
-                isLoaded ? Color.accentColor.opacity(0.08) : Color.clear,
+                isLoaded ? Color.accentColor.opacity(0.08) : (isRecommended ? Color.orange.opacity(0.04) : Color.clear),
                 in: RoundedRectangle(cornerRadius: 10)
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .strokeBorder(isLoaded ? Color.accentColor.opacity(0.3) : Color.gray.opacity(0.2), lineWidth: 1)
+                    .strokeBorder(
+                        isLoaded ? Color.accentColor.opacity(0.3) : (isRecommended ? Color.orange.opacity(0.25) : Color.gray.opacity(0.2)),
+                        lineWidth: isRecommended ? 1.5 : 1
+                    )
             )
         }
         .buttonStyle(.plain)

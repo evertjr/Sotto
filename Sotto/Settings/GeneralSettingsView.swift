@@ -1,10 +1,12 @@
 import SwiftUI
 import AVFoundation
+import ServiceManagement
 
 struct GeneralSettingsView: View {
     @Environment(DictationCoordinator.self) private var coordinator
     @State private var languageChanged = false
     @State private var initialLanguage = AppleLanguages.current
+    @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
 
     var body: some View {
         @Bindable var coord = coordinator
@@ -88,6 +90,21 @@ struct GeneralSettingsView: View {
                             .controlSize(.small)
                         }
                     }
+                }
+
+                Section("System") {
+                    Toggle("Launch at login", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { _, enabled in
+                            do {
+                                if enabled {
+                                    try SMAppService.mainApp.register()
+                                } else {
+                                    try SMAppService.mainApp.unregister()
+                                }
+                            } catch {
+                                launchAtLogin = SMAppService.mainApp.status == .enabled
+                            }
+                        }
                 }
 
                 Section("Feedback") {

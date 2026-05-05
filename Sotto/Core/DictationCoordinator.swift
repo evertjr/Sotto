@@ -24,14 +24,21 @@ final class DictationCoordinator {
     var recordingDuration: TimeInterval = 0
     var partialText: String = ""
     var lastTranscribedText: String?
-    var indicatorStyle: IndicatorStyle {
-        didSet { UserDefaults.standard.set(indicatorStyle.rawValue, forKey: UserDefaultsKeys.indicatorStyle) }
-    }
+    var isRefining = false
     var soundFeedbackEnabled: Bool {
         didSet { UserDefaults.standard.set(soundFeedbackEnabled, forKey: UserDefaultsKeys.soundFeedbackEnabled) }
     }
     var waveformPreset: WaveformColorPreset {
         didSet { UserDefaults.standard.set(waveformPreset.rawValue, forKey: UserDefaultsKeys.waveformColorPreset) }
+    }
+    var polishEnabled: Bool {
+        didSet { UserDefaults.standard.set(polishEnabled, forKey: UserDefaultsKeys.refineEnabled) }
+    }
+    var translateEnabled: Bool {
+        didSet { UserDefaults.standard.set(translateEnabled, forKey: UserDefaultsKeys.translateEnabled) }
+    }
+    var translateTargetLanguage: String {
+        didSet { UserDefaults.standard.set(translateTargetLanguage, forKey: UserDefaultsKeys.translateTargetLanguage) }
     }
 
     let statePublisher = PassthroughSubject<State, Never>()
@@ -42,7 +49,7 @@ final class DictationCoordinator {
     let textInsertionService: TextInsertionService
     let hotkeyService: HotkeyService
     let modelManager: ModelManager
-    let soundService: SoundService
+    let aiService: AIService
     let audioDeviceService: AudioDeviceService
 
     // MARK: - Private
@@ -63,14 +70,15 @@ final class DictationCoordinator {
         self.textInsertionService = TextInsertionService()
         self.hotkeyService = HotkeyService()
         self.modelManager = ModelManager()
-        self.soundService = SoundService()
         self.audioDeviceService = AudioDeviceService()
+        self.aiService = AIService()
 
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
-        self.indicatorStyle = UserDefaults.standard.string(forKey: UserDefaultsKeys.indicatorStyle)
-            .flatMap { IndicatorStyle(rawValue: $0) } ?? .notch
         self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
             .flatMap { WaveformColorPreset(rawValue: $0) } ?? .aurora
+        self.polishEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.refineEnabled)
+        self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
+        self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""
     }
 
     private var floatingIndicator: FloatingIndicatorController?
@@ -203,15 +211,17 @@ final class DictationCoordinator {
 
                 guard !Task.isCancelled else { return }
 
-                let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                var text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !text.isEmpty else {
                     resetState()
                     return
                 }
 
+                text = await processWithAI(text)
+                guard !Task.isCancelled else { return }
+
                 _ = try await textInsertionService.insertText(text, preserveClipboard: true)
 
-                soundService.play(.transcriptionSuccess, enabled: soundFeedbackEnabled)
                 lastTranscribedText = text
                 partialText = ""
 
@@ -236,7 +246,6 @@ final class DictationCoordinator {
         case .recording:
             _ = audioCaptureService.stopCapture()
             stopRecordingTimer()
-            soundService.play(.error, enabled: soundFeedbackEnabled)
             resetState()
         case .processing:
             transcriptionTask?.cancel()
@@ -281,6 +290,43 @@ final class DictationCoordinator {
             guard !Task.isCancelled else { return }
             resetState()
         }
+    }
+
+    // MARK: - AI Processing
+
+    private func processWithAI(_ text: String) async -> String {
+        guard aiService.isAvailable else { return text }
+
+        var result = text
+        isRefining = true
+        defer { isRefining = false }
+
+        if polishEnabled {
+            do {
+                logger.info("Polishing transcription...")
+                result = try await withAITimeout(seconds: 10) { [aiService] in
+                    try await aiService.polish(result)
+                }
+                logger.info("Polished: '\(result.prefix(100))'")
+            } catch {
+                logger.warning("Polish failed, using original: \(error.localizedDescription)")
+            }
+        }
+
+        if translateEnabled, !translateTargetLanguage.isEmpty {
+            do {
+                logger.info("Translating to \(self.translateTargetLanguage)...")
+                let targetLang = translateTargetLanguage
+                result = try await withAITimeout(seconds: 15) { [aiService] in
+                    try await aiService.translate(result, to: targetLang)
+                }
+                logger.info("Translated: '\(result.prefix(100))'")
+            } catch {
+                logger.warning("Translate failed, using previous: \(error.localizedDescription)")
+            }
+        }
+
+        return result
     }
 
     // MARK: - Recording Timer

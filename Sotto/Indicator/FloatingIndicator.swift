@@ -117,10 +117,22 @@ private struct FloatingPillView: View {
     let coordinator: DictationCoordinator
 
     var body: some View {
-        AuroraWaveform(level: coordinator.audioLevel, preset: coordinator.waveformPreset)
-            .frame(width: 140, height: 28)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .background(.black, in: Capsule())
+        ZStack {
+            AuroraWaveform(level: coordinator.audioLevel, preset: coordinator.waveformPreset)
+                .frame(width: 140, height: 28)
+
+            if coordinator.isRefining {
+                Capsule()
+                    .fill(.black.opacity(0.5))
+                ProgressView()
+                    .controlSize(.small)
+                    .tint(.white)
+            }
+        }
+        .frame(width: 140, height: 28)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(.black, in: Capsule())
+        .animation(.easeInOut(duration: 0.2), value: coordinator.isRefining)
     }
 }

@@ -17,6 +17,10 @@ struct SettingsView: View {
                 .environment(coordinator)
                 .tabItem { Label("Model", systemImage: "cpu") }
 
+            AISettingsView()
+                .environment(coordinator)
+                .tabItem { Label("AI", systemImage: "apple.intelligence") }
+
             AboutSettingsView()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }

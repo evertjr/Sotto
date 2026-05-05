@@ -18,7 +18,7 @@ struct AboutSettingsView: View {
             Text("Version \(AppConstants.appVersion)")
                 .foregroundStyle(.secondary)
 
-            Text("Minimal voice dictation for macOS")
+            Text("The simplest voice dictation for macOS")
                 .foregroundStyle(.secondary)
 
             Button("Show Setup Guide") {

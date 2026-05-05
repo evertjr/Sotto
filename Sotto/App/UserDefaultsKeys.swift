@@ -1,21 +1,13 @@
 import Foundation
 
 enum UserDefaultsKeys {
-    static let selectedEngine = "selectedEngine"
     static let selectedModelId = "selectedModelId"
     static let soundFeedbackEnabled = "soundFeedbackEnabled"
-    static let indicatorStyle = "indicatorStyle"
-    static let overlayPosition = "overlayPosition"
-    static let notchIndicatorVisibility = "notchIndicatorVisibility"
-    static let notchIndicatorLeftContent = "notchIndicatorLeftContent"
-    static let notchIndicatorRightContent = "notchIndicatorRightContent"
-    static let notchIndicatorDisplay = "notchIndicatorDisplay"
-    static let showMenuBarIcon = "showMenuBarIcon"
     static let selectedLanguage = "selectedLanguage"
-    static let soundRecordingStarted = "soundRecordingStarted"
-    static let soundTranscriptionSuccess = "soundTranscriptionSuccess"
-    static let soundError = "soundError"
     static let waveformColorPreset = "waveformColorPreset"
+    static let refineEnabled = "refineEnabled"
+    static let translateEnabled = "translateEnabled"
+    static let translateTargetLanguage = "translateTargetLanguage"
 
     // Hotkeys
     static let hybridHotkey = "hybridHotkey"

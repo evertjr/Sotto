@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		590638FA2FA9B36000709915 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 590638F92FA9B36000709915 /* Sparkle */; };
 		59E1C9E72FA7044B0038868E /* WhisperKit in Frameworks */ = {isa = PBXBuildFile; productRef = 59E1C9E62FA7044B0038868E /* WhisperKit */; };
 		59E1CA832FA859070038868E /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = 59E1CA822FA859070038868E /* AppIcon.icon */; };
 		59E1CAC52FA8CB3E0038868E /* FluidAudio in Frameworks */ = {isa = PBXBuildFile; productRef = 59E1CAC42FA8CB3E0038868E /* FluidAudio */; };
@@ -59,6 +60,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				590638FA2FA9B36000709915 /* Sparkle in Frameworks */,
 				59E1CAC52FA8CB3E0038868E /* FluidAudio in Frameworks */,
 				59E1C9E72FA7044B0038868E /* WhisperKit in Frameworks */,
 			);
@@ -124,6 +126,7 @@
 			packageProductDependencies = (
 				59E1C9E62FA7044B0038868E /* WhisperKit */,
 				59E1CAC42FA8CB3E0038868E /* FluidAudio */,
+				590638F92FA9B36000709915 /* Sparkle */,
 			);
 			productName = Sotto;
 			productReference = 59E1C9892FA7008B0038868E /* Sotto.app */;
@@ -216,6 +219,7 @@
 			packageReferences = (
 				59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */,
+				590638F82FA9B36000709915 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 59E1C98A2FA7008B0038868E /* Products */;
@@ -427,6 +431,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sotto needs microphone access to transcribe your speech.";
@@ -434,6 +439,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evercraftlabs.Sotto;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -462,6 +468,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = Info.plist;
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Sotto needs microphone access to transcribe your speech.";
@@ -469,6 +476,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 26.2;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.evercraftlabs.Sotto;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -604,6 +612,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		590638F82FA9B36000709915 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.1;
+			};
+		};
 		59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/argmaxinc/WhisperKit.git";
@@ -623,6 +639,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		590638F92FA9B36000709915 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 590638F82FA9B36000709915 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		59E1C9E62FA7044B0038868E /* WhisperKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */;

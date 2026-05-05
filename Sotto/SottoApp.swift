@@ -1,11 +1,13 @@
 import SwiftUI
 import AVFoundation
+@preconcurrency import Sparkle
 
 @main
 struct SottoApp: App {
     @Environment(\.openWindow) private var openWindow
     @State private var coordinator = DictationCoordinator()
     @State private var didLaunch = false
+    private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     private var needsOnboarding: Bool {
         !UserDefaults.standard.bool(forKey: "onboardingCompleted")
@@ -13,7 +15,7 @@ struct SottoApp: App {
 
     var body: some Scene {
         MenuBarExtra("Sotto", systemImage: "waveform") {
-            MenuBarContentView(openWindow: openWindow)
+            MenuBarContentView(openWindow: openWindow, coordinator: coordinator, updater: updaterController.updater)
                 .onAppear {
                     guard !didLaunch else { return }
                     didLaunch = true
@@ -65,8 +67,33 @@ struct SottoApp: App {
 
 private struct MenuBarContentView: View {
     let openWindow: OpenWindowAction
+    let coordinator: DictationCoordinator
+    let updater: SPUUpdater
 
     var body: some View {
+        if coordinator.translateEnabled {
+            Menu("Translate: \(AILanguage.shortCode(for: coordinator.translateTargetLanguage))") {
+                ForEach(AILanguage.supported, id: \.code) { lang in
+                    Button {
+                        coordinator.translateTargetLanguage = lang.code
+                    } label: {
+                        HStack {
+                            Text(lang.name)
+                            if coordinator.translateTargetLanguage == lang.code {
+                                Image(systemName: "checkmark")
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+        }
+
+        Button("Check for Updates...") {
+            updater.checkForUpdates()
+        }
+
         Button("Settings...") {
             openWindow(id: "settings")
             NSApp.setActivationPolicy(.regular)
