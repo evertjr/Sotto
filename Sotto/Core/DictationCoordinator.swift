@@ -302,10 +302,11 @@ final class DictationCoordinator {
         defer { isRefining = false }
 
         if polishEnabled {
+            let input = result
             do {
                 logger.info("Polishing transcription...")
                 result = try await withAITimeout(seconds: 10) { [aiService] in
-                    try await aiService.polish(result)
+                    try await aiService.polish(input)
                 }
                 logger.info("Polished: '\(result.prefix(100))'")
             } catch {
@@ -314,11 +315,12 @@ final class DictationCoordinator {
         }
 
         if translateEnabled, !translateTargetLanguage.isEmpty {
+            let input = result
+            let targetLang = translateTargetLanguage
             do {
-                logger.info("Translating to \(self.translateTargetLanguage)...")
-                let targetLang = translateTargetLanguage
+                logger.info("Translating to \(targetLang)...")
                 result = try await withAITimeout(seconds: 15) { [aiService] in
-                    try await aiService.translate(result, to: targetLang)
+                    try await aiService.translate(input, to: targetLang)
                 }
                 logger.info("Translated: '\(result.prefix(100))'")
             } catch {

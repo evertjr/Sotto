@@ -5,6 +5,7 @@ struct OnboardingView: View {
     let coordinator: DictationCoordinator
     @State private var step = 0
     @State private var shortcutLabel = ""
+    @State private var micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     @Environment(\.dismiss) private var dismiss
     let onComplete: () -> Void
 
@@ -53,7 +54,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            if coordinator.audioCaptureService.micPermissionGranted {
+            if micGranted {
                 AuroraWaveform(level: coordinator.audioDeviceService.previewAudioLevel, preset: coordinator.waveformPreset)
                     .frame(height: 60)
                     .frame(maxWidth: 300)
@@ -73,13 +74,14 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 360)
 
-            if coordinator.audioCaptureService.micPermissionGranted {
+            if micGranted {
                 Label("Microphone access granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
                 Button("Allow Microphone Access") {
                     Task {
-                        _ = await coordinator.audioCaptureService.requestMicrophonePermission()
+                        let granted = await coordinator.audioCaptureService.requestMicrophonePermission()
+                        micGranted = granted
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -88,7 +90,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            nextButton("Continue", enabled: coordinator.audioCaptureService.micPermissionGranted)
+            nextButton("Continue", enabled: micGranted)
         }
         .padding(40)
     }

@@ -16,7 +16,14 @@ struct SottoApp: App {
     var body: some Scene {
         MenuBarExtra("Sotto", systemImage: "waveform") {
             MenuBarContentView(openWindow: openWindow, coordinator: coordinator, updater: updaterController.updater)
-                .onAppear {
+        }
+        .menuBarExtraStyle(.menu)
+
+        Window("Settings", id: "settings") {
+            SettingsView()
+                .environment(coordinator)
+                .frame(minWidth: 500, minHeight: 400)
+                .task {
                     guard !didLaunch else { return }
                     didLaunch = true
                     if needsOnboarding {
@@ -25,13 +32,6 @@ struct SottoApp: App {
                         NSApp.activate(ignoringOtherApps: true)
                     }
                 }
-        }
-        .menuBarExtraStyle(.menu)
-
-        Window("Settings", id: "settings") {
-            SettingsView()
-                .environment(coordinator)
-                .frame(minWidth: 500, minHeight: 400)
                 .onReceive(NotificationCenter.default.publisher(for: NSWindow.willCloseNotification)) { notification in
                     guard let window = notification.object as? NSWindow,
                           window.identifier?.rawValue.contains("settings") == true else { return }
