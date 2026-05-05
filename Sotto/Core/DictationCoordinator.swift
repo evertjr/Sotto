@@ -31,6 +31,9 @@ final class DictationCoordinator {
     var waveformPreset: WaveformColorPreset {
         didSet { UserDefaults.standard.set(waveformPreset.rawValue, forKey: UserDefaultsKeys.waveformColorPreset) }
     }
+    var indicatorStyle: IndicatorStyle {
+        didSet { UserDefaults.standard.set(indicatorStyle.rawValue, forKey: UserDefaultsKeys.indicatorStyle) }
+    }
     var polishEnabled: Bool {
         didSet { UserDefaults.standard.set(polishEnabled, forKey: UserDefaultsKeys.refineEnabled) }
     }
@@ -76,20 +79,27 @@ final class DictationCoordinator {
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
         self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
             .flatMap { WaveformColorPreset(rawValue: $0) } ?? .aurora
+        self.indicatorStyle = UserDefaults.standard.string(forKey: UserDefaultsKeys.indicatorStyle)
+            .flatMap { IndicatorStyle(rawValue: $0) } ?? .pill
         self.polishEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.refineEnabled)
         self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
         self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""
     }
 
     private var floatingIndicator: FloatingIndicatorController?
+    private var notchIndicator: NotchIndicatorController?
 
     func start() {
         setupBindings()
         hotkeyService.setup()
 
-        let indicator = FloatingIndicatorController()
-        indicator.startObserving(self)
-        floatingIndicator = indicator
+        let pill = FloatingIndicatorController()
+        pill.startObserving(self)
+        floatingIndicator = pill
+
+        let notch = NotchIndicatorController()
+        notch.startObserving(self)
+        notchIndicator = notch
 
         Task { @MainActor in
             await modelManager.restoreLastModel()

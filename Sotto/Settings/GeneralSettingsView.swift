@@ -51,6 +51,11 @@ struct GeneralSettingsView: View {
                 }
 
                 Section("Appearance") {
+                    Picker("Indicator Style", selection: $coord.indicatorStyle) {
+                        ForEach(IndicatorStyle.allCases) { style in
+                            Text(style.displayName).tag(style)
+                        }
+                    }
                     Picker("Waveform Color", selection: $coord.waveformPreset) {
                         ForEach(WaveformColorPreset.allCases) { preset in
                             HStack(spacing: 6) {

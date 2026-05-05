@@ -17,10 +17,11 @@ final class FloatingIndicatorController {
     }
 
     private func updateVisibility(state: DictationCoordinator.State, coordinator: DictationCoordinator) {
+        let screenHasNotch = NSScreen.main?.safeAreaInsets.top ?? 0 > 0
         let shouldShow: Bool
         switch state {
         case .recording, .processing:
-            shouldShow = true
+            shouldShow = coordinator.indicatorStyle == .pill || (coordinator.indicatorStyle == .notch && !screenHasNotch)
         default:
             shouldShow = false
         }

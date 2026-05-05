@@ -5,6 +5,7 @@ enum UserDefaultsKeys {
     static let soundFeedbackEnabled = "soundFeedbackEnabled"
     static let selectedLanguage = "selectedLanguage"
     static let waveformColorPreset = "waveformColorPreset"
+    static let indicatorStyle = "indicatorStyle"
     static let refineEnabled = "refineEnabled"
     static let translateEnabled = "translateEnabled"
     static let translateTargetLanguage = "translateTargetLanguage"
