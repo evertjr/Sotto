@@ -68,6 +68,10 @@ To contribute code:
 3. Make your changes and test locally
 4. Open a pull request with a clear description of what changed and why
 
+## Works great with Maestri
+
+Sotto pairs perfectly with [Maestri](https://www.themaestri.app) — a spatial canvas for orchestrating coding agents. Dictate prompts, commands, and notes directly into any agent terminal with your voice. If you work with multiple AI agents, Maestri gives you the workspace and Sotto gives you the voice.
+
 ## License
 
 MIT
