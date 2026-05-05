@@ -5,5 +5,28 @@
     <link>https://github.com/evertjr/Sotto</link>
     <description>Sotto app updates</description>
     <language>en</language>
+    <item>
+      <title>Version 0.1.0</title>
+      <sparkle:version>1</sparkle:version>
+      <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>Sotto 0.1.0</h2>
+        <p>First release of Sotto — the simplest voice dictation for macOS.</p>
+        <ul>
+          <li>WhisperKit and Parakeet transcription engines</li>
+          <li>Aurora waveform visualization</li>
+          <li>Notch and floating pill indicator styles</li>
+          <li>Apple Intelligence polish and translate</li>
+          <li>7 waveform color presets</li>
+          <li>Localized in 7 languages</li>
+        </ul>
+      ]]></description>
+      <pubDate>Mon, 05 May 2026 00:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.0/Sotto-0.1.0.dmg"
+        sparkle:edSignature="H2kzRYOp8x0iQWEor0SY3j9Cu/b/V7JyonunXv7xnxSa+v0o1wSwAvhOP0BJ/F/89Y7wolkn8xMeP2fZyT65DQ=="
+        length="6948727"
+        type="application/octet-stream" />
+    </item>
   </channel>
 </rss>

@@ -79,8 +79,9 @@ final class DictationCoordinator {
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
         self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
             .flatMap { WaveformColorPreset(rawValue: $0) } ?? .aurora
+        let hasNotch = NSScreen.main?.safeAreaInsets.top ?? 0 > 0
         self.indicatorStyle = UserDefaults.standard.string(forKey: UserDefaultsKeys.indicatorStyle)
-            .flatMap { IndicatorStyle(rawValue: $0) } ?? .pill
+            .flatMap { IndicatorStyle(rawValue: $0) } ?? (hasNotch ? .notch : .pill)
         self.polishEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.refineEnabled)
         self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
         self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""

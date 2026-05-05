@@ -21,13 +21,24 @@ struct AboutSettingsView: View {
             Text("The simplest voice dictation for macOS")
                 .foregroundStyle(.secondary)
 
-            Button("Show Setup Guide") {
-                UserDefaults.standard.set(false, forKey: "onboardingCompleted")
-                openWindow(id: "onboarding")
-                NSApp.activate(ignoringOtherApps: true)
+            Text("Made by [Evert Junior](https://github.com/evertjr)")
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 12) {
+                Link(destination: URL(string: "https://github.com/evertjr/Sotto")!) {
+                    Label("View on GitHub", systemImage: "link")
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
+
+                Button("Show Setup Guide") {
+                    UserDefaults.standard.set(false, forKey: "onboardingCompleted")
+                    openWindow(id: "onboarding")
+                    NSApp.activate(ignoringOtherApps: true)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.regular)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.regular)
 
             Spacer()
         }
