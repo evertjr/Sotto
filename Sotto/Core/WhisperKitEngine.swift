@@ -17,7 +17,7 @@ final class WhisperKitEngine: TranscriptionEngine {
         try? FileManager.default.createDirectory(at: modelsDirectory, withIntermediateDirectories: true)
     }
 
-    func loadModel(_ model: SottoModel, onProgress: @escaping (Double) -> Void) async throws {
+    func loadModel(_ model: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws {
         let modelPath = modelPath(for: model)
 
         let modelFolder: URL
@@ -28,9 +28,11 @@ final class WhisperKitEngine: TranscriptionEngine {
                 variant: model.id,
                 downloadBase: modelsDirectory
             ) { progress in
-                onProgress(progress.fractionCompleted)
+                onPhaseChange(.downloading(progress: progress.fractionCompleted))
             }
         }
+
+        onPhaseChange(.loading)
 
         let config = WhisperKitConfig(
             modelFolder: modelFolder.path,
@@ -64,6 +66,8 @@ final class WhisperKitEngine: TranscriptionEngine {
     func transcribe(samples: [Float], language: String?) async throws -> SottoTranscription {
         guard let whisperKit else { throw TranscriptionError.engineNotConfigured }
 
+        let promptTokens = makePromptTokens(tokenizer: whisperKit.tokenizer)
+
         let options = DecodingOptions(
             verbose: false,
             task: .transcribe,
@@ -74,6 +78,7 @@ final class WhisperKitEngine: TranscriptionEngine {
             detectLanguage: language == nil,
             skipSpecialTokens: true,
             withoutTimestamps: false,
+            promptTokens: promptTokens,
             chunkingStrategy: .vad
         )
 
@@ -83,6 +88,24 @@ final class WhisperKitEngine: TranscriptionEngine {
         let duration = results.flatMap { $0.segments }.last.map { TimeInterval($0.end) } ?? 0
 
         return SottoTranscription(text: text, detectedLanguage: detectedLanguage, duration: duration)
+    }
+
+    private func makePromptTokens(tokenizer: WhisperTokenizer?) -> [Int]? {
+        guard let tokenizer,
+              let raw = UserDefaults.standard.string(forKey: UserDefaultsKeys.vocabularyKeywords)
+        else { return nil }
+
+        let keywords = raw
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        guard !keywords.isEmpty else { return nil }
+
+        let specialBegin = tokenizer.specialTokens.specialTokenBegin
+        let tokens = tokenizer.encode(text: keywords.joined(separator: ", "))
+            .filter { $0 < specialBegin }
+        return tokens.isEmpty ? nil : tokens
     }
 
     private func modelPath(for model: SottoModel) -> URL {

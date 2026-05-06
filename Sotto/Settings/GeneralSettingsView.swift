@@ -97,6 +97,13 @@ struct GeneralSettingsView: View {
                     }
                 }
 
+                Section("Vocabulary") {
+                    TextField("Keywords", text: $coord.vocabularyKeywords, prompt: Text("e.g. Xcode, SwiftUI, CoreML"))
+                    Text("Add words the model often gets wrong, separated by commas. Helps with names, brands, and technical terms. Currently supported on Whisper models only.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Section("System") {
                     Toggle("Launch at login", isOn: $launchAtLogin)
                         .onChange(of: launchAtLogin) { _, enabled in
@@ -185,3 +192,4 @@ private struct WaveformPresetSwatch: View {
         }
     }
 }
+

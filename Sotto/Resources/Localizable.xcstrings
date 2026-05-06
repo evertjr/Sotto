@@ -57,6 +57,46 @@
         }
       }
     },
+    "Add words the model often gets wrong, separated by commas. Helps with names, brands, and technical terms. Currently supported on Whisper models only." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Füge Wörter hinzu, die das Modell oft falsch versteht, getrennt durch Kommas. Hilfreich bei Namen, Marken und Fachbegriffen. Wird derzeit nur von Whisper-Modellen unterstützt."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Añade palabras que el modelo suele transcribir mal, separadas por comas. Útil para nombres, marcas y términos técnicos. Actualmente solo es compatible con los modelos Whisper."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ajoutez les mots que le modèle se trompe souvent, séparés par des virgules. Pratique pour les noms, marques et termes techniques. Pris en charge uniquement par les modèles Whisper pour l'instant."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "モデルが間違えやすい単語を、カンマ区切りで追加してください。固有名詞、ブランド名、専門用語に効果的です。現在はWhisperモデルのみ対応しています。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adicione palavras que o modelo costuma errar, separadas por vírgulas. Ajuda com nomes, marcas e termos técnicos. Atualmente disponível apenas em modelos Whisper."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加模型经常识别错误的词语，用逗号分隔。适用于人名、品牌和专业术语。目前仅支持 Whisper 模型。"
+          }
+        }
+      }
+    },
     "Accuracy" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -527,6 +567,46 @@
         }
       }
     },
+    "e.g. Xcode, SwiftUI, CoreML" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "z. B. Xcode, SwiftUI, CoreML"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p. ej. Xcode, SwiftUI, CoreML"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "p. ex. Xcode, SwiftUI, CoreML"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例: Xcode、SwiftUI、CoreML"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ex.: Xcode, SwiftUI, CoreML"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "例如：Xcode、SwiftUI、CoreML"
+          }
+        }
+      }
+    },
     "Feedback" : {
       "localizations" : {
         "de" : {
@@ -769,6 +849,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "输入设备"
+          }
+        }
+      }
+    },
+    "Keywords" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schlüsselwörter"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palabras clave"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mots-clés"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "キーワード"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Palavras-chave"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关键词"
           }
         }
       }
@@ -1767,6 +1887,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卸载模型"
+          }
+        }
+      }
+    },
+    "Vocabulary" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wortschatz"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulario"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulaire"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "単語登録"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vocabulário"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "词汇"
           }
         }
       }

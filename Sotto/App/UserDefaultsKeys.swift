@@ -10,6 +10,8 @@ enum UserDefaultsKeys {
     static let translateEnabled = "translateEnabled"
     static let translateTargetLanguage = "translateTargetLanguage"
 
+    static let vocabularyKeywords = "vocabularyKeywords"
+
     // Hotkeys
     static let hybridHotkey = "hybridHotkey"
     static let pttHotkey = "pttHotkey"

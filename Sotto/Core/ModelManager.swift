@@ -25,10 +25,15 @@ struct SottoModel: Identifiable {
     }
 }
 
+enum LoadPhase: Sendable {
+    case downloading(progress: Double)
+    case loading
+}
+
 @MainActor
 protocol TranscriptionEngine {
     var engineName: String { get }
-    func loadModel(_ model: SottoModel, onProgress: @escaping (Double) -> Void) async throws
+    func loadModel(_ model: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws
     func unloadModel()
     func deleteModel(_ model: SottoModel)
     func isModelDownloaded(_ model: SottoModel) -> Bool
@@ -49,6 +54,7 @@ final class ModelManager {
     private(set) var state: ModelState = .notLoaded
     private(set) var selectedModelId: String?
     private(set) var loadedModelId: String?
+    private(set) var downloadedModelIds: Set<String> = []
 
     private var activeEngine: (any TranscriptionEngine)?
     private let engines: [SottoModel.Engine: any TranscriptionEngine]
@@ -101,6 +107,12 @@ final class ModelManager {
         if let savedId, Self.availableModels.contains(where: { $0.id == savedId }) {
             self.state = .loading
         }
+
+        self.downloadedModelIds = Set(
+            Self.availableModels
+                .filter { self.engines[$0.engine]?.isModelDownloaded($0) ?? false }
+                .map(\.id)
+        )
     }
 
     func loadModel(_ model: SottoModel) async {
@@ -120,14 +132,20 @@ final class ModelManager {
                 state = .downloading(progress: 0)
             }
 
-            try await engine.loadModel(model) { [weak self] progress in
+            try await engine.loadModel(model) { [weak self] phase in
                 Task { @MainActor in
-                    self?.state = .downloading(progress: progress)
+                    switch phase {
+                    case .downloading(let progress):
+                        self?.state = .downloading(progress: progress)
+                    case .loading:
+                        self?.state = .loading
+                    }
                 }
             }
 
             activeEngine = engine
             loadedModelId = model.id
+            downloadedModelIds.insert(model.id)
             state = .ready
             logger.info("Model \(model.displayName) (\(model.engine.rawValue)) loaded")
         } catch {
@@ -148,10 +166,11 @@ final class ModelManager {
     func deleteModel(_ model: SottoModel) {
         if loadedModelId == model.id { unloadModel() }
         engines[model.engine]?.deleteModel(model)
+        downloadedModelIds.remove(model.id)
     }
 
     func isModelDownloaded(_ model: SottoModel) -> Bool {
-        engines[model.engine]?.isModelDownloaded(model) ?? false
+        downloadedModelIds.contains(model.id)
     }
 
     func restoreLastModel() async {

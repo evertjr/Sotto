@@ -117,23 +117,30 @@ private struct FloatingPillContainer: View {
 private struct FloatingPillView: View {
     let coordinator: DictationCoordinator
 
+    private var isWorking: Bool {
+        if case .processing = coordinator.state { return true }
+        return coordinator.isRefining
+    }
+
     var body: some View {
         ZStack {
             AuroraWaveform(level: coordinator.audioLevel, preset: coordinator.waveformPreset)
                 .frame(width: 140, height: 28)
 
-            if coordinator.isRefining {
+            if isWorking {
                 Capsule()
                     .fill(.black.opacity(0.5))
                 ProgressView()
+                    .progressViewStyle(.circular)
                     .controlSize(.small)
                     .tint(.white)
+                    .colorScheme(.dark)
             }
         }
         .frame(width: 140, height: 28)
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(.black, in: Capsule())
-        .animation(.easeInOut(duration: 0.2), value: coordinator.isRefining)
+        .animation(.easeInOut(duration: 0.2), value: isWorking)
     }
 }

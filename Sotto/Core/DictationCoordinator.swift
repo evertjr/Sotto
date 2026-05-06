@@ -43,6 +43,9 @@ final class DictationCoordinator {
     var translateTargetLanguage: String {
         didSet { UserDefaults.standard.set(translateTargetLanguage, forKey: UserDefaultsKeys.translateTargetLanguage) }
     }
+    var vocabularyKeywords: String {
+        didSet { UserDefaults.standard.set(vocabularyKeywords, forKey: UserDefaultsKeys.vocabularyKeywords) }
+    }
 
     let statePublisher = PassthroughSubject<State, Never>()
 
@@ -85,6 +88,7 @@ final class DictationCoordinator {
         self.polishEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.refineEnabled)
         self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
         self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""
+        self.vocabularyKeywords = UserDefaults.standard.string(forKey: UserDefaultsKeys.vocabularyKeywords) ?? ""
     }
 
     private var floatingIndicator: FloatingIndicatorController?
@@ -218,7 +222,7 @@ final class DictationCoordinator {
                 let language = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedLanguage)
                 logger.info("Starting transcription with \(samples.count) samples")
                 let result = try await modelManager.transcribe(samples: samples, language: language)
-                logger.info("Transcription result: '\(result.text.prefix(100))'")
+                logger.info("Transcription result: '\(result.text)'")
 
                 guard !Task.isCancelled else { return }
 
@@ -319,7 +323,7 @@ final class DictationCoordinator {
                 result = try await withAITimeout(seconds: 10) { [aiService] in
                     try await aiService.polish(input)
                 }
-                logger.info("Polished: '\(result.prefix(100))'")
+                logger.info("Polished: '\(result)'")
             } catch {
                 logger.warning("Polish failed, using original: \(error.localizedDescription)")
             }
@@ -333,7 +337,7 @@ final class DictationCoordinator {
                 result = try await withAITimeout(seconds: 15) { [aiService] in
                     try await aiService.translate(input, to: targetLang)
                 }
-                logger.info("Translated: '\(result.prefix(100))'")
+                logger.info("Translated: '\(result)'")
             } catch {
                 logger.warning("Translate failed, using previous: \(error.localizedDescription)")
             }

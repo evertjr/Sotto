@@ -10,16 +10,15 @@ final class ParakeetEngine: TranscriptionEngine {
 
     private var asrManager: AsrManager?
 
-    func loadModel(_ model: SottoModel, onProgress: @escaping (Double) -> Void) async throws {
+    func loadModel(_ model: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws {
         let version = parakeetVersion(for: model)
 
-        onProgress(0.1)
+        onPhaseChange(.downloading(progress: 0.1))
         let models = try await AsrModels.downloadAndLoad(version: version)
-        onProgress(0.7)
+        onPhaseChange(.loading)
 
         let manager = AsrManager(config: .default)
         try await manager.loadModels(models)
-        onProgress(1.0)
 
         asrManager = manager
         logger.info("Parakeet model loaded: \(model.displayName)")

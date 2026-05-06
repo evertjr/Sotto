@@ -134,6 +134,11 @@ private struct NotchIndicatorContainer: View {
         }
     }
 
+    private var isWorking: Bool {
+        if case .processing = coordinator.state { return true }
+        return coordinator.isRefining
+    }
+
     private let expandedHeight: CGFloat = 50
     private let collapsedHeight: CGFloat = 0
 
@@ -156,10 +161,12 @@ private struct NotchIndicatorContainer: View {
                         .padding(.top, geometry.safeAreaTop + 4)
                         .transition(.opacity)
 
-                    if coordinator.isRefining {
+                    if isWorking {
                         ProgressView()
+                            .progressViewStyle(.circular)
                             .controlSize(.small)
                             .tint(.white)
+                            .colorScheme(.dark)
                             .padding(.top, geometry.safeAreaTop + 12)
                     }
                 }
