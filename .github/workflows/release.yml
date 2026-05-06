@@ -1,9 +1,12 @@
 name: Release
 
+# Manual-only trigger. The canonical release flow is the local notarized
+# build via scripts/release.sh; this workflow exists as an unsignable
+# fallback (e.g. for CI smoke builds) and would always fail on tag push
+# because it can't notarize without Developer ID. Run it from the Actions
+# tab when you specifically want it.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
 
 jobs:
   build:
