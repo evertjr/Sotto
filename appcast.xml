@@ -6,6 +6,27 @@
     <description>Sotto app updates</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.1</title>
+      <sparkle:version>2</sparkle:version>
+      <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>Sotto 0.1.1</h2>
+        <ul>
+          <li>New: Vocabulary keywords for Whisper — add words the model often gets wrong (names, brands, technical terms), separated by commas, in General settings</li>
+          <li>Translation is much more reliable — harder to confuse the model into refusing, echoing the source, or answering questions instead of translating</li>
+          <li>Loading indicator now appears in the pill and notch while transcription is processing</li>
+          <li>Whisper downloads no longer appear stuck at 100% — the model prewarm phase has its own status</li>
+          <li>Deleting a non-active model in the Models tab updates immediately</li>
+        </ul>
+      ]]></description>
+      <pubDate>Wed, 06 May 2026 00:00:00 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.1/Sotto-0.1.1.dmg"
+        sparkle:edSignature="jiLpx3YSIE+iebeRb5tbOL5OMs6aFkydkmMymCvGEr8XvvBa0FTOyok2SM8FM7vWFa0PzwI2/HjKK4QrCKgEAg=="
+        length="6967528"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 0.1.0</title>
       <sparkle:version>1</sparkle:version>
       <sparkle:shortVersionString>0.1.0</sparkle:shortVersionString>
