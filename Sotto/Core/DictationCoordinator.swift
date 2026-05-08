@@ -57,6 +57,7 @@ final class DictationCoordinator {
     let modelManager: ModelManager
     let aiService: AIService
     let audioDeviceService: AudioDeviceService
+    let historyStore: HistoryStore
 
     // MARK: - Private
 
@@ -78,6 +79,7 @@ final class DictationCoordinator {
         self.modelManager = ModelManager()
         self.audioDeviceService = AudioDeviceService()
         self.aiService = AIService()
+        self.historyStore = HistoryStore()
 
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
         self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
@@ -226,14 +228,23 @@ final class DictationCoordinator {
 
                 guard !Task.isCancelled else { return }
 
-                var text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !text.isEmpty else {
+                let originalText = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !originalText.isEmpty else {
                     resetState()
                     return
                 }
 
-                text = await processWithAI(text)
+                let text = await processWithAI(originalText)
                 guard !Task.isCancelled else { return }
+
+                historyStore.record(
+                    samples: samples,
+                    text: text,
+                    originalText: originalText,
+                    durationSeconds: duration,
+                    language: language,
+                    modelName: modelManager.activeModelName
+                )
 
                 _ = try await textInsertionService.insertText(text, preserveClipboard: true)
 

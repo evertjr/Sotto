@@ -6,6 +6,7 @@ import AVFoundation
 struct SottoApp: App {
     @Environment(\.openWindow) private var openWindow
     @State private var coordinator = DictationCoordinator()
+    @State private var appState = AppState()
     @State private var didLaunch = false
     private let updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
@@ -15,13 +16,14 @@ struct SottoApp: App {
 
     var body: some Scene {
         MenuBarExtra("Sotto", systemImage: "waveform") {
-            MenuBarContentView(openWindow: openWindow, coordinator: coordinator, updater: updaterController.updater)
+            MenuBarContentView(openWindow: openWindow, coordinator: coordinator, appState: appState, updater: updaterController.updater)
         }
         .menuBarExtraStyle(.menu)
 
         Window("Settings", id: "settings") {
             SettingsView()
                 .environment(coordinator)
+                .environment(appState)
                 .frame(minWidth: 500, minHeight: 400)
                 .task {
                     guard !didLaunch else { return }
@@ -68,6 +70,7 @@ struct SottoApp: App {
 private struct MenuBarContentView: View {
     let openWindow: OpenWindowAction
     let coordinator: DictationCoordinator
+    let appState: AppState
     let updater: SPUUpdater
 
     var body: some View {
@@ -88,6 +91,13 @@ private struct MenuBarContentView: View {
             }
 
             Divider()
+        }
+
+        Button("Audio History...") {
+            appState.settingsTab = .history
+            openWindow(id: "settings")
+            NSApp.setActivationPolicy(.regular)
+            NSApp.activate(ignoringOtherApps: true)
         }
 
         Button("Check for Updates...") {
