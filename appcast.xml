@@ -6,6 +6,28 @@
     <description>Sotto app updates</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.2</title>
+      <sparkle:version>3</sparkle:version>
+      <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>What's Fixed</h2>
+        <ul>
+        <li><strong>Stuck model downloads.</strong> Some users got permanently stuck on first launch when picking the Parakeet model — the download would hang forever, no way to cancel it, and reinstalling the app didn't help because the partially-downloaded files survived on disk and re-triggered the hang.</li>
+        <li>Added a <strong>Cancel</strong> button while a model is downloading or loading.</li>
+        <li>You can now pick a different model mid-download instead of being locked out.</li>
+        <li>Cancelling a stuck download cleans up the partial cache, so the next attempt starts fresh — and a relaunch won't auto-restore a broken model.</li>
+        </ul>
+        <h2>Upgrade</h2>
+        <p>Sparkle will pick this up automatically on next check, or grab the DMG below.</p>
+      ]]></description>
+      <pubDate>Sat, 09 May 2026 00:31:05 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.2/Sotto-0.1.2.dmg"
+        sparkle:edSignature="E1N3u6T3nyJ6sOjz6KHlK0Jqhky0Y0py8tAxyU3S2gkhJHvhnH3iuG3JeSjDyuMNFvfJAuyA++YeKOuGQhsRDw=="
+        length="6979413"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 0.1.1</title>
       <sparkle:version>2</sparkle:version>
       <sparkle:shortVersionString>0.1.1</sparkle:shortVersionString>
