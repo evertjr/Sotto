@@ -185,7 +185,8 @@ struct OnboardingView: View {
                             isSelected: coordinator.modelManager.selectedModelId == recommendedModel.id,
                             isLoaded: coordinator.modelManager.loadedModelId == recommendedModel.id,
                             state: coordinator.modelManager.state,
-                            onSelect: { Task { await coordinator.modelManager.loadModel(recommendedModel) } },
+                            onSelect: { coordinator.modelManager.loadModel(recommendedModel) },
+                            onCancel: { coordinator.modelManager.cancelLoad() },
                             isRecommended: true
                         )
                     }
@@ -203,7 +204,8 @@ struct OnboardingView: View {
                                 isSelected: coordinator.modelManager.selectedModelId == model.id,
                                 isLoaded: coordinator.modelManager.loadedModelId == model.id,
                                 state: coordinator.modelManager.state,
-                                onSelect: { Task { await coordinator.modelManager.loadModel(model) } }
+                                onSelect: { coordinator.modelManager.loadModel(model) },
+                                onCancel: { coordinator.modelManager.cancelLoad() }
                             )
                         }
                     }
@@ -245,6 +247,7 @@ private struct OnboardingModelCard: View {
     let isLoaded: Bool
     let state: ModelManager.ModelState
     let onSelect: () -> Void
+    let onCancel: () -> Void
     var isRecommended: Bool = false
 
     private var isThisActive: Bool {
@@ -298,12 +301,22 @@ private struct OnboardingModelCard: View {
                 }
 
                 if isThisActive, case .downloading(let progress) = state {
-                    ProgressView(value: progress)
-                        .tint(.accentColor)
+                    HStack(spacing: 8) {
+                        ProgressView(value: progress)
+                            .tint(.accentColor)
+                        Button("Cancel") { onCancel() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
                 }
                 if isThisActive, case .loading = state {
-                    ProgressView()
-                        .controlSize(.small)
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .controlSize(.small)
+                        Button("Cancel") { onCancel() }
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                    }
                 }
             }
             .padding(12)

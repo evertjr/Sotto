@@ -53,9 +53,10 @@ private struct EngineSection: View {
                         isActive: modelManager.selectedModelId == model.id,
                         isDownloaded: modelManager.isModelDownloaded(model),
                         state: modelManager.state,
-                        onLoad: { Task { await modelManager.loadModel(model) } },
+                        onLoad: { modelManager.loadModel(model) },
                         onUnload: { modelManager.unloadModel() },
-                        onDelete: { modelManager.deleteModel(model) }
+                        onDelete: { modelManager.deleteModel(model) },
+                        onCancel: { modelManager.cancelLoad() }
                     )
 
                     if model.id != models.last?.id {
@@ -77,13 +78,7 @@ private struct ModelRow: View {
     let onLoad: () -> Void
     let onUnload: () -> Void
     let onDelete: () -> Void
-
-    private var isBusy: Bool {
-        switch state {
-        case .downloading, .loading: true
-        default: false
-        }
-    }
+    let onCancel: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -151,18 +146,25 @@ private struct ModelRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+                Button("Cancel") { onCancel() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
             }
         } else if isActive, case .loading = state {
-            Text("Loading...")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 6) {
+                Text("Loading...")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Button("Cancel") { onCancel() }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+            }
         } else {
             HStack(spacing: 8) {
                 if isDownloaded {
                     Button("Load") { onLoad() }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .disabled(isBusy)
 
                     Button {
                         onDelete()
@@ -172,12 +174,10 @@ private struct ModelRow: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .disabled(isBusy)
                 } else {
                     Button("Download") { onLoad() }
                         .buttonStyle(.bordered)
                         .controlSize(.small)
-                        .disabled(isBusy)
                 }
             }
         }

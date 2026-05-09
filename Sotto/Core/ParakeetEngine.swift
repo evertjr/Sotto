@@ -15,10 +15,12 @@ final class ParakeetEngine: TranscriptionEngine {
 
         onPhaseChange(.downloading(progress: 0.1))
         let models = try await AsrModels.downloadAndLoad(version: version)
+        try Task.checkCancellation()
         onPhaseChange(.loading)
 
         let manager = AsrManager(config: .default)
         try await manager.loadModels(models)
+        try Task.checkCancellation()
 
         asrManager = manager
         logger.info("Parakeet model loaded: \(model.displayName)")

@@ -31,6 +31,7 @@ final class WhisperKitEngine: TranscriptionEngine {
                 onPhaseChange(.downloading(progress: progress.fractionCompleted))
             }
         }
+        try Task.checkCancellation()
 
         onPhaseChange(.loading)
 
@@ -43,8 +44,11 @@ final class WhisperKitEngine: TranscriptionEngine {
             download: false
         )
         let kit = try await WhisperKit(config)
+        try Task.checkCancellation()
         try await kit.loadModels()
+        try Task.checkCancellation()
         try await kit.prewarmModels()
+        try Task.checkCancellation()
 
         whisperKit = kit
         logger.info("WhisperKit model loaded: \(model.displayName)")

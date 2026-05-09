@@ -58,6 +58,7 @@ final class ModelManager {
 
     private var activeEngine: (any TranscriptionEngine)?
     private let engines: [SottoModel.Engine: any TranscriptionEngine]
+    private var loadTask: Task<Void, Never>?
 
     static let availableModels: [SottoModel] = [
         SottoModel(id: "openai_whisper-tiny", displayName: "Whisper Tiny", size: "~39 MB", engine: .whisperKit,
@@ -115,8 +116,10 @@ final class ModelManager {
         )
     }
 
-    func loadModel(_ model: SottoModel) async {
+    func loadModel(_ model: SottoModel) {
         guard let engine = engines[model.engine] else { return }
+
+        loadTask?.cancel()
 
         activeEngine?.unloadModel()
         activeEngine = nil
@@ -125,30 +128,46 @@ final class ModelManager {
         selectedModelId = model.id
         UserDefaults.standard.set(model.id, forKey: UserDefaultsKeys.selectedModelId)
 
-        do {
-            if engine.isModelDownloaded(model) {
-                state = .loading
-            } else {
-                state = .downloading(progress: 0)
-            }
+        if engine.isModelDownloaded(model) {
+            state = .loading
+        } else {
+            state = .downloading(progress: 0)
+        }
 
+        loadTask = Task { [weak self] in
+            await self?.performLoad(model: model, engine: engine)
+        }
+    }
+
+    private func performLoad(model: SottoModel, engine: any TranscriptionEngine) async {
+        do {
             try await engine.loadModel(model) { [weak self] phase in
                 Task { @MainActor in
+                    guard let self, self.selectedModelId == model.id else { return }
                     switch phase {
                     case .downloading(let progress):
-                        self?.state = .downloading(progress: progress)
+                        self.state = .downloading(progress: progress)
                     case .loading:
-                        self?.state = .loading
+                        self.state = .loading
                     }
                 }
             }
+            try Task.checkCancellation()
 
             activeEngine = engine
             loadedModelId = model.id
             downloadedModelIds.insert(model.id)
             state = .ready
             logger.info("Model \(model.displayName) (\(model.engine.rawValue)) loaded")
+        } catch is CancellationError {
+            // The user (or a follow-up loadModel call) cancelled this load.
+            // Don't clobber state — whoever cancelled is responsible for it.
+            engine.unloadModel()
         } catch {
+            engine.unloadModel()
+            if Task.isCancelled {
+                return
+            }
             activeEngine = nil
             loadedModelId = nil
             state = .error(error.localizedDescription)
@@ -156,7 +175,43 @@ final class ModelManager {
         }
     }
 
+    func cancelLoad() {
+        switch state {
+        case .downloading, .loading:
+            break
+        case .notLoaded, .ready, .error:
+            return
+        }
+
+        // Capture which model was loading before we clear it, so we can wipe
+        // its partial cache. Without this, AsrModels.downloadAndLoad on retry
+        // sees partial files, returns "successfully", and the next step
+        // (AsrManager.loadModels) hangs on the corrupt CoreML data —
+        // AsrManager.loadModels does not honor Task cancellation.
+        let cancelledModel = selectedModelId.flatMap { id in
+            Self.availableModels.first { $0.id == id }
+        }
+
+        loadTask?.cancel()
+        loadTask = nil
+        activeEngine?.unloadModel()
+        activeEngine = nil
+        loadedModelId = nil
+        state = .notLoaded
+        // Forget the selection so a corrupt cached model can't re-trigger
+        // the hang on next launch via restoreLastModel().
+        selectedModelId = nil
+        UserDefaults.standard.removeObject(forKey: UserDefaultsKeys.selectedModelId)
+
+        if let cancelledModel {
+            engines[cancelledModel.engine]?.deleteModel(cancelledModel)
+            downloadedModelIds.remove(cancelledModel.id)
+        }
+    }
+
     func unloadModel() {
+        loadTask?.cancel()
+        loadTask = nil
         activeEngine?.unloadModel()
         activeEngine = nil
         loadedModelId = nil
@@ -173,11 +228,11 @@ final class ModelManager {
         downloadedModelIds.contains(model.id)
     }
 
-    func restoreLastModel() async {
+    func restoreLastModel() {
         guard let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId),
               let model = Self.availableModels.first(where: { $0.id == savedId }),
               isModelDownloaded(model) else { return }
-        await loadModel(model)
+        loadModel(model)
     }
 
     func transcribe(samples: [Float], language: String?) async throws -> SottoTranscription {

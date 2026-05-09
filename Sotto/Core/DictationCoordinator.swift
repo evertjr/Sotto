@@ -106,9 +106,7 @@ final class DictationCoordinator {
         notch.startObserving(self)
         notchIndicator = notch
 
-        Task { @MainActor in
-            await modelManager.restoreLastModel()
-        }
+        modelManager.restoreLastModel()
     }
 
     // MARK: - Hotkey Bindings
