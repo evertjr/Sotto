@@ -6,6 +6,26 @@
     <description>Sotto app updates</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.3</title>
+      <sparkle:version>4</sparkle:version>
+      <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>What's Fixed</h2>
+        <ul>
+        <li><strong>Real download progress for Parakeet.</strong> The progress bar used to sit at 10% for the whole download and then jump straight to "Loading", which made it look stuck. It now climbs from 0% to 100% as the model actually downloads.</li>
+        <li><strong>Automatic recovery from corrupted model files.</strong> If a model fails to load (CoreML errors like "Unable to load model", "Error in reading the MIL network", or "Compile the model…"), Sotto now wipes the broken files automatically. Just click Download again and you'll get a fresh, working copy — no more being stuck in an error loop.</li>
+        </ul>
+        <h2>Upgrade</h2>
+        <p>Sparkle will pick this up automatically on next check, or grab the DMG below.</p>
+      ]]></description>
+      <pubDate>Sun, 10 May 2026 20:01:54 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.3/Sotto-0.1.3.dmg"
+        sparkle:edSignature="6S+FqPwSk4CDgWJpFs5cXPMouUyBwHkLhEZPDPG5ZNyBU3FgpU/+t/rVtknZm5WXvrA0R0Sh+SfG+hzIA16oCw=="
+        length="6979762"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 0.1.2</title>
       <sparkle:version>3</sparkle:version>
       <sparkle:shortVersionString>0.1.2</sparkle:shortVersionString>
