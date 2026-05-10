@@ -13,8 +13,15 @@ final class ParakeetEngine: TranscriptionEngine {
     func loadModel(_ model: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws {
         let version = parakeetVersion(for: model)
 
-        onPhaseChange(.downloading(progress: 0.1))
-        let models = try await AsrModels.downloadAndLoad(version: version)
+        onPhaseChange(.downloading(progress: 0))
+        let models = try await AsrModels.downloadAndLoad(version: version) { progress in
+            switch progress.phase {
+            case .listing, .downloading:
+                onPhaseChange(.downloading(progress: progress.fractionCompleted))
+            case .compiling:
+                onPhaseChange(.loading)
+            }
+        }
         try Task.checkCancellation()
         onPhaseChange(.loading)
 

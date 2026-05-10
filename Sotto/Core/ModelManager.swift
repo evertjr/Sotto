@@ -168,10 +168,19 @@ final class ModelManager {
             if Task.isCancelled {
                 return
             }
+            // Most post-download load failures (CoreML "Unable to load model",
+            // "Error in reading the MIL network", "Compile the model with…")
+            // are caused by partial/corrupt files left on disk from an
+            // interrupted download. Wipe the cache so the next attempt
+            // re-downloads instead of failing the same way again. The cost is
+            // an extra download on a genuinely incompatible model, which is
+            // acceptable next to the alternative of an unrecoverable loop.
+            engine.deleteModel(model)
+            downloadedModelIds.remove(model.id)
             activeEngine = nil
             loadedModelId = nil
             state = .error(error.localizedDescription)
-            logger.error("Failed to load model: \(error.localizedDescription)")
+            logger.error("Failed to load model, cache cleared: \(error.localizedDescription)")
         }
     }
 
