@@ -6,6 +6,26 @@
     <description>Sotto app updates</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.4</title>
+      <sparkle:version>5</sparkle:version>
+      <sparkle:shortVersionString>0.1.4</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>What's New</h2>
+        <ul>
+        <li><strong>Continuity microphone fallback.</strong> When no usable microphone is available (MacBook clamshell with no headset, or a desktop Mac with no input connected), Sotto now routes recording to a paired iPhone via Continuity Capture. Enabled by default; toggle in Settings → General → Microphone.</li>
+        <li><strong>Input device picker now actually routes capture.</strong> Picking a specific microphone in Settings → General → Microphone now sends recording to that device instead of always using the system default.</li>
+        </ul>
+        <h2>Upgrade</h2>
+        <p>Sparkle will pick this up automatically on next check, or grab the DMG below.</p>
+      ]]></description>
+      <pubDate>Tue, 12 May 2026 21:39:29 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.4/Sotto-0.1.4.dmg"
+        sparkle:edSignature="6nT9ZyrX4tMKYV5ne3LLpb2ZBoDKV+tO8KhNGgCsqDjW1itDMEC/qfAZr+Ybd7sFBKtE/dQF6IWlY33weH23CQ=="
+        length="6987176"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 0.1.3</title>
       <sparkle:version>4</sparkle:version>
       <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
