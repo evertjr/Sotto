@@ -47,6 +47,10 @@ struct GeneralSettingsView: View {
                                 Text(device.name).tag(device.uid as String?)
                             }
                         }
+                        Toggle("Enable Continuity features", isOn: $coord.continuityEnabled)
+                        Text("Uses a paired iPhone as the microphone when no other input is available.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 

@@ -46,6 +46,9 @@ final class DictationCoordinator {
     var vocabularyKeywords: String {
         didSet { UserDefaults.standard.set(vocabularyKeywords, forKey: UserDefaultsKeys.vocabularyKeywords) }
     }
+    var continuityEnabled: Bool {
+        didSet { UserDefaults.standard.set(continuityEnabled, forKey: UserDefaultsKeys.continuityEnabled) }
+    }
 
     let statePublisher = PassthroughSubject<State, Never>()
 
@@ -89,6 +92,7 @@ final class DictationCoordinator {
         self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
         self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""
         self.vocabularyKeywords = UserDefaults.standard.string(forKey: UserDefaultsKeys.vocabularyKeywords) ?? ""
+        self.continuityEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.continuityEnabled) as? Bool ?? true
     }
 
     private var floatingIndicator: FloatingIndicatorController?
@@ -171,7 +175,7 @@ final class DictationCoordinator {
                 await playActivationSound()
             }
 
-            audioCaptureService.selectedDeviceID = audioDeviceService.selectedDeviceID
+            audioCaptureService.selectedDeviceID = resolvedInputDeviceID()
             try audioCaptureService.startCapture()
             hotkeyService.resetKeyDownTime()
             partialText = ""
@@ -250,6 +254,25 @@ final class DictationCoordinator {
             }
             self.transcriptionTask = nil
         }
+    }
+
+    // MARK: - Input Device Resolution
+
+    /// Picks the device to record from for this take.
+    /// Honors an explicit picker selection. Otherwise, when the system default input
+    /// isn't usable (clamshelled laptop, no default at all, etc.), falls back to a
+    /// paired iPhone (Continuity Capture) if one is available.
+    private func resolvedInputDeviceID() -> AudioDeviceID? {
+        if let chosen = audioDeviceService.selectedDeviceID {
+            return chosen
+        }
+        guard continuityEnabled,
+              let iphone = audioDeviceService.firstContinuityInputDevice,
+              !AudioDeviceService.isDefaultInputUsable else {
+            return nil
+        }
+        logger.info("Default input not usable — using Continuity device \"\(iphone.name)\"")
+        return iphone.deviceID
     }
 
     // MARK: - Cancel

@@ -611,6 +611,46 @@
         }
       }
     },
+    "Enable Continuity features" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuity-Funktionen aktivieren"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Habilitar funciones de Continuidad"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Activer les fonctionnalités Continuité"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Continuity 機能を有効にする"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ativar recursos de Continuidade"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启用“连续互通”功能"
+          }
+        }
+      }
+    },
     "Feedback" : {
       "localizations" : {
         "de" : {
@@ -1891,6 +1931,46 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "卸载模型"
+          }
+        }
+      }
+    },
+    "Uses a paired iPhone as the microphone when no other input is available." : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwendet ein gekoppeltes iPhone als Mikrofon, wenn kein anderer Eingang verfügbar ist."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa un iPhone vinculado como micrófono cuando no hay otra entrada disponible."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilise un iPhone associé comme microphone lorsqu'aucune autre entrée n'est disponible."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "他の入力が利用できないときに、ペアリング済みの iPhone をマイクとして使用します。"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usa um iPhone pareado como microfone quando não há outra entrada disponível."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有其他可用输入时，使用已配对的 iPhone 作为麦克风。"
           }
         }
       }

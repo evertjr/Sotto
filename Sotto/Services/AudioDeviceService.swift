@@ -3,6 +3,7 @@ import CoreAudio
 import AudioToolbox
 @preconcurrency import AVFoundation
 import Combine
+import IOKit
 import os
 
 private let logger = Logger(subsystem: "com.sotto.app", category: "AudioDeviceService")
@@ -11,6 +12,7 @@ struct AudioInputDevice: Identifiable, Equatable {
     let deviceID: AudioDeviceID
     let name: String
     let uid: String
+    let isContinuity: Bool
 
     var id: String { uid }
 }
@@ -205,9 +207,67 @@ final class AudioDeviceService: @unchecked Sendable {
                   let uid = Self.deviceUID(for: id) else { continue }
             let lowerName = name.lowercased()
             if lowerName.contains("cadefault") || lowerName.contains("aggregate") { continue }
-            devices.append(AudioInputDevice(deviceID: id, name: name, uid: uid))
+            let isContinuity = Self.isContinuityCaptureDevice(id)
+            devices.append(AudioInputDevice(deviceID: id, name: name, uid: uid, isContinuity: isContinuity))
         }
         return devices
+    }
+
+    var firstContinuityInputDevice: AudioInputDevice? {
+        inputDevices.first(where: { $0.isContinuity })
+    }
+
+    /// True when the system default input device is missing, has no input channels,
+    /// or is the laptop built-in mic with the lid closed (clamshell mode).
+    static var isDefaultInputUsable: Bool {
+        var defaultDevice: AudioDeviceID = 0
+        var size = UInt32(MemoryLayout<AudioDeviceID>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioHardwarePropertyDefaultInputDevice,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectGetPropertyData(
+            AudioObjectID(kAudioObjectSystemObject),
+            &address, 0, nil, &size, &defaultDevice
+        )
+        guard status == noErr, defaultDevice != 0 else { return false }
+        guard isInputDeviceAvailable(defaultDevice) else { return false }
+        if isLaptopLidClosed, transportType(of: defaultDevice) == kAudioDeviceTransportTypeBuiltIn {
+            return false
+        }
+        return true
+    }
+
+    private static var isLaptopLidClosed: Bool {
+        let root = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPMrootDomain"))
+        guard root != 0 else { return false }
+        defer { IOObjectRelease(root) }
+        guard let raw = IORegistryEntryCreateCFProperty(
+            root,
+            "AppleClamshellState" as CFString,
+            kCFAllocatorDefault,
+            0
+        )?.takeRetainedValue() else { return false }
+        return (raw as? Bool) ?? false
+    }
+
+    private static func isContinuityCaptureDevice(_ deviceID: AudioDeviceID) -> Bool {
+        let t = transportType(of: deviceID)
+        return t == kAudioDeviceTransportTypeContinuityCaptureWireless
+            || t == kAudioDeviceTransportTypeContinuityCaptureWired
+    }
+
+    private static func transportType(of deviceID: AudioDeviceID) -> UInt32 {
+        var value: UInt32 = 0
+        var size = UInt32(MemoryLayout<UInt32>.size)
+        var address = AudioObjectPropertyAddress(
+            mSelector: kAudioDevicePropertyTransportType,
+            mScope: kAudioObjectPropertyScopeGlobal,
+            mElement: kAudioObjectPropertyElementMain
+        )
+        let status = AudioObjectGetPropertyData(deviceID, &address, 0, nil, &size, &value)
+        return status == noErr ? value : 0
     }
 
     private static func isInputDeviceAvailable(_ deviceID: AudioDeviceID) -> Bool {

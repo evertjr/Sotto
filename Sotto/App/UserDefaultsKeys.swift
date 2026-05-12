@@ -12,6 +12,8 @@ enum UserDefaultsKeys {
 
     static let vocabularyKeywords = "vocabularyKeywords"
 
+    static let continuityEnabled = "continuityEnabled"
+
     // Hotkeys
     static let hybridHotkey = "hybridHotkey"
     static let pttHotkey = "pttHotkey"

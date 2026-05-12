@@ -114,6 +114,15 @@ final class AudioCaptureService: @unchecked Sendable {
     private func buildAndStartEngine() throws {
         let newEngine = AVAudioEngine()
         let inputNode = newEngine.inputNode
+
+        if let deviceID = selectedDeviceID {
+            do {
+                try inputNode.auAudioUnit.setDeviceID(deviceID)
+            } catch {
+                logger.warning("Failed to bind input to device \(deviceID), falling back to default: \(error.localizedDescription)")
+            }
+        }
+
         let inputFormat = try Self.validInputFormat(
             inputNode.outputFormat(forBus: 0),
             failureMessage: "No audio input available"
