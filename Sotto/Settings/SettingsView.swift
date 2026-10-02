@@ -17,6 +17,10 @@ struct SettingsView: View {
                 .environment(coordinator)
                 .tabItem { Label("Model", systemImage: "cpu") }
 
+            RecorderTranscriberView()
+                .environment(coordinator)
+                .tabItem { Label("Transcribe", systemImage: "waveform.badge.mic") }
+
             AISettingsView()
                 .environment(coordinator)
                 .tabItem { Label("AI", systemImage: "apple.intelligence") }

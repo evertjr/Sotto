@@ -29,8 +29,11 @@ final class AudioCaptureService: @unchecked Sendable {
 
     private(set) var isCapturing = false
     private(set) var audioLevel: Float = 0
-    private(set) var micPermissionGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     private(set) var waveformLevels: [Float] = Array(repeating: 0, count: 40)
+
+    var micPermissionGranted: Bool {
+        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
+    }
 
     var selectedDeviceID: AudioDeviceID?
 
@@ -50,7 +53,6 @@ final class AudioCaptureService: @unchecked Sendable {
     func requestMicrophonePermission() async -> Bool {
         if micPermissionGranted { return true }
         let granted = await AVCaptureDevice.requestAccess(for: .audio)
-        micPermissionGranted = granted
         return granted
     }
 

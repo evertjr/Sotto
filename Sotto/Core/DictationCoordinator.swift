@@ -237,7 +237,9 @@ final class DictationCoordinator {
                 text = await processWithAI(text)
                 guard !Task.isCancelled else { return }
 
-                _ = try await textInsertionService.insertText(text, preserveClipboard: true)
+                logger.info("Inserting text: '\(text)' (len=\(text.count))")
+                let insertionResult = try await textInsertionService.insertText(text, preserveClipboard: true)
+                logger.info("Text insertion result: \(String(describing: insertionResult))")
 
                 lastTranscribedText = text
                 partialText = ""
@@ -250,6 +252,7 @@ final class DictationCoordinator {
                 }
             } catch {
                 guard !Task.isCancelled else { return }
+                logger.error("Dictation failed: \(error.localizedDescription)")
                 showError(error.localizedDescription)
             }
             self.transcriptionTask = nil

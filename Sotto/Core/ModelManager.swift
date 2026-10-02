@@ -22,6 +22,7 @@ struct SottoModel: Identifiable {
     enum Engine: String, CaseIterable {
         case whisperKit = "WhisperKit"
         case parakeet = "Parakeet"
+        case mlx = "MLX Audio"
     }
 }
 
@@ -82,6 +83,18 @@ final class ModelManager {
         SottoModel(id: "parakeet-tdt-0.6b-v3", displayName: "Parakeet v3", size: "~600 MB", engine: .parakeet,
                    speed: 0.9, accuracy: 0.9, languages: "25 European languages",
                    description: "Fast and accurate with multilingual support"),
+        SottoModel(id: "nemotron-3.5-asr-0.6b", displayName: "Nemotron ASR", size: "~700 MB", engine: .mlx,
+                   speed: 0.9, accuracy: 0.85, languages: "35+ languages",
+                   description: "NVIDIA FastConformer RNN-T, streaming-capable, 35+ languages"),
+        SottoModel(id: "sensevoice-small", displayName: "SenseVoice", size: "~890 MB", engine: .mlx,
+                   speed: 0.85, accuracy: 0.8, languages: "5 languages",
+                   description: "FunAudioLLM multilingual ASR with emotion detection"),
+        SottoModel(id: "moonshine-tiny", displayName: "Moonshine Tiny", size: "~90 MB", engine: .mlx,
+                   speed: 1.0, accuracy: 0.5, languages: "English",
+                   description: "Ultra-light English-only, fastest option available"),
+        SottoModel(id: "moonshine-base", displayName: "Moonshine Base", size: "~360 MB", engine: .mlx,
+                   speed: 0.95, accuracy: 0.65, languages: "English",
+                   description: "Fast English ASR by Useful Sensors, good for notes"),
     ]
 
     var isModelReady: Bool { activeEngine != nil && loadedModelId != nil }
@@ -100,6 +113,7 @@ final class ModelManager {
         self.engines = [
             .whisperKit: WhisperKitEngine(),
             .parakeet: ParakeetEngine(),
+            .mlx: MLXEngine(),
         ]
 
         let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId)

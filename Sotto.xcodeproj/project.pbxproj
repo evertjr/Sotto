@@ -127,6 +127,7 @@
 				59E1C9E62FA7044B0038868E /* WhisperKit */,
 				59E1CAC42FA8CB3E0038868E /* FluidAudio */,
 				590638F92FA9B36000709915 /* Sparkle */,
+				A1MLX0002FA8CB3E0038868E /* MLXAudioSTT */,
 			);
 			productName = Sotto;
 			productReference = 59E1C9892FA7008B0038868E /* Sotto.app */;
@@ -220,6 +221,7 @@
 				59E1C9E52FA7044B0038868E /* XCRemoteSwiftPackageReference "WhisperKit" */,
 				59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */,
 				590638F82FA9B36000709915 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				A1MLX0001FA8CB3E0038868E /* XCRemoteSwiftPackageReference "mlx-audio-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 59E1C98A2FA7008B0038868E /* Products */;
@@ -638,6 +640,14 @@
 				revision = 2ea0727541135c34189194084531337a3518e1bf;
 			};
 		};
+		A1MLX0001FA8CB3E0038868E /* XCRemoteSwiftPackageReference "mlx-audio-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Blaizzy/mlx-audio-swift.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -655,6 +665,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 59E1CAC32FA8CB3E0038868E /* XCRemoteSwiftPackageReference "FluidAudio" */;
 			productName = FluidAudio;
+		};
+		A1MLX0002FA8CB3E0038868E /* MLXAudioSTT */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = A1MLX0001FA8CB3E0038868E /* XCRemoteSwiftPackageReference "mlx-audio-swift" */;
+			productName = MLXAudioSTT;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

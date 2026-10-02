@@ -393,19 +393,27 @@ enum InsertionResult {
         autoEnter: Bool = false
     ) async throws -> InsertionResult {
         guard isAccessibilityGranted else {
+            Self.logger.warning("insertText: accessibility not granted")
             throw TextInsertionError.accessibilityNotGranted
         }
 
         let hadFocusedTextField = autoEnter && hasFocusedTextField()
 
-        if preserveClipboard,
-           let focusedElement = getFocusedTextElement(),
-           insertTextAtAndVerifyChange(element: focusedElement, text: text) {
-            if hadFocusedTextField {
-                try? await Task.sleep(for: .milliseconds(50))
-                simulateReturn()
+        if preserveClipboard {
+            if let focusedElement = getFocusedTextElement() {
+                Self.logger.info("insertText: AX path — element role=\(Self.roleOf(focusedElement) ?? "unknown")")
+                let success = insertTextAtAndVerifyChange(element: focusedElement, text: text)
+                Self.logger.info("insertText: AX path result=\(success)")
+                if success {
+                    if hadFocusedTextField {
+                        try? await Task.sleep(for: .milliseconds(50))
+                        simulateReturn()
+                    }
+                    return .pasted
+                }
+            } else {
+                Self.logger.warning("insertText: no focused text element found, falling back to clipboard")
             }
-            return .pasted
         }
 
         let pasteboard = pasteboardProvider()
@@ -415,6 +423,7 @@ enum InsertionResult {
         // Text stays on clipboard as fallback if no text field is focused.
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+        Self.logger.info("insertText: clipboard path — simulating Cmd+V")
         simulatePaste()
 
         if preserveClipboard {
@@ -428,6 +437,12 @@ enum InsertionResult {
         }
 
         return .pasted
+    }
+
+    nonisolated private static func roleOf(_ element: AXUIElement) -> String? {
+        var roleValue: AnyObject?
+        let result = AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleValue)
+        return result == .success ? roleValue as? String : nil
     }
 
     func focusedElementPosition() -> CGPoint? {
