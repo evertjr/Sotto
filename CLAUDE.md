@@ -7,24 +7,41 @@ Minimal voice dictation for macOS. Hold a hotkey, speak, release — text is ins
 ```
 Sotto/
 ├── App/              UserDefaultsKeys, AppConstants, app entry
-├── Core/             DictationCoordinator, ModelManager, transcription engines, AIService
+├── Core/             DictationCoordinator, ModelManager, transcription engines, AudioCaptureService, AIService
 ├── Indicator/        Floating pill + notch indicators (recording UI)
-├── MenuBar/          Status item, menu
 ├── Resources/        Localizable.xcstrings, sounds, etc.
-├── Services/         AudioCaptureService, TextInsertionService, HotkeyService, AudioDeviceService
-└── Settings/         Settings window views (General, Model, Hotkey, AI, About)
+├── Services/         TextInsertionService, HotkeyService, AudioDeviceService
+├── Settings/         Settings window views (General, Shortcut, Model, Transcribe, AI, About)
+└── SottoApp.swift    App entry, windows, and the menu bar menu (`MenuBarContentView`)
 ```
 
 `DictationCoordinator` is the `@Observable` orchestrator — the rest of the app reads state from it via `@Environment`.
 
+The selected Settings tab is persisted (`UserDefaultsKeys.selectedSettingsTab`, `SettingsTab` in `SettingsView.swift`), so menu items can deep-link to a tab by setting it before opening the window.
+
 ## Transcription engines
 
-Two backends behind the `TranscriptionEngine` protocol in `Core/ModelManager.swift`:
+Three backends behind the `TranscriptionEngine` protocol in `Core/ModelManager.swift`:
 
-- **WhisperKitEngine** — `argmaxinc/WhisperKit`. Multilingual. Reads vocabulary keywords from `UserDefaults` and passes them as `promptTokens` on `DecodingOptions` for keyword biasing.
-- **ParakeetEngine** — `FluidInference/FluidAudio` (`AsrManager`). Faster, English/EU. **No vocabulary biasing** — FluidAudio's CTC-based custom vocabulary path was tried and removed (see "Rejected: Parakeet vocabulary boosting" below).
+- **WhisperKitEngine**: `argmaxinc/WhisperKit`. Multilingual. Reads vocabulary keywords from `UserDefaults` and passes them as `promptTokens` on `DecodingOptions` for keyword biasing.
+- **ParakeetEngine**: `FluidInference/FluidAudio` (`AsrManager`). CoreML on the Neural Engine. Ships Parakeet v2, Ultra (retrained v3, 25 languages, the most accurate) and Phonon-2 (English, fastest). **No vocabulary biasing**: FluidAudio's CTC-based custom vocabulary path was tried and removed (see "Rejected: Parakeet vocabulary boosting" below).
+- **MLXEngine**: `Blaizzy/mlx-audio-swift` (`MLXAudioSTT`). Qwen3 ASR (0.6B and 1.7B) and SenseVoice. Kept for languages Parakeet doesn't cover, mainly Chinese, Japanese and Korean. Weights download from `mlx-community` on Hugging Face into `Application Support/Models/mlx-audio/`.
+
+Each engine maps `SottoModel.id` to its backend model with an explicit `switch`. Unknown IDs return `nil` (and `loadModel` throws `TranscriptionError.unknownModel`); never fall back to a default model or match on substrings.
+
+**Retiring a model**: remove it from `availableModels` and from the engine's `switch`, add `ModelManager.replacedModelIds` so a saved selection moves to its successor, and have the engine delete the old files on launch (see `ParakeetEngine.retiredVersions`). Never force-unwrap a lookup by model ID. Retired so far: Parakeet v3 (replaced by Ultra in 0.1.5). Nemotron and Moonshine were removed before they shipped.
 
 `ModelManager` swaps the active engine based on the selected model. The coordinator/UI does not branch on engine type — engine-specific behavior belongs inside the engine. The protocol method `transcribe(samples:language:)` stays simple; engines pull their own per-feature config from services or UserDefaults directly.
+
+### MLX threading
+
+MLX is not thread safe. Everything that touches MLX during transcription (building the `MLXArray`, `generate`) runs on `MLXEngine.mlxQueue`, a single serial queue. Don't use `Task.detached` or `DispatchQueue.global` for MLX work: both hand out a different thread per call. Transcription also holds a `ProcessInfo` activity, because Sotto is an `LSUIElement` app and is eligible for App Nap while another app is frontmost during push-to-talk.
+
+### Dependency pins
+
+FluidAudio is pinned to a minor version (`upToNextMinorVersion`). WhisperKit still tracks `main`; upstream renamed it to `argmax-oss-swift` at v1.0.0 with breaking API changes, so moving it is its own task.
+
+mlx-audio-swift is pinned to exactly 0.1.4, which keeps mlx-swift on 0.31.6. Its only follow-up, 0.1.5, just moves to mlx-swift 0.32, whose Metal headers raise about 20 `-Wc++17-extensions` warnings instead of 4. Xcode compiles mlx-swift's shaders for the package's own macOS 14 minimum, and an app project can't change a package's compiler flags. Those 4 remaining warnings come from mlx-swift itself (ml-explore/mlx-swift#342); don't try to fix them in Sotto. Revisit the pin once that issue is closed, and don't "Update to Latest Package Versions" without checking that mlx-swift stays on 0.31.
 
 ### Rejected: Parakeet vocabulary boosting
 

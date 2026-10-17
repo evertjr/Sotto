@@ -70,6 +70,8 @@ private struct MenuBarContentView: View {
     let coordinator: DictationCoordinator
     let updater: SPUUpdater
 
+    @AppStorage(UserDefaultsKeys.selectedSettingsTab) private var selectedSettingsTab: SettingsTab = .general
+
     var body: some View {
         if coordinator.translateEnabled {
             Menu("Translate: \(AILanguage.shortCode(for: coordinator.translateTargetLanguage))") {
@@ -90,14 +92,19 @@ private struct MenuBarContentView: View {
             Divider()
         }
 
+        Button("Transcribe Audio...") {
+            selectedSettingsTab = .transcribe
+            openSettings()
+        }
+
+        Divider()
+
         Button("Check for Updates...") {
             updater.checkForUpdates()
         }
 
         Button("Settings...") {
-            openWindow(id: "settings")
-            NSApp.setActivationPolicy(.regular)
-            NSApp.activate(ignoringOtherApps: true)
+            openSettings()
         }
 
         Divider()
@@ -105,5 +112,11 @@ private struct MenuBarContentView: View {
         Button("Quit Sotto") {
             NSApp.terminate(nil)
         }
+    }
+
+    private func openSettings() {
+        openWindow(id: "settings")
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

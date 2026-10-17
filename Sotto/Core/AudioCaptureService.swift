@@ -31,9 +31,14 @@ final class AudioCaptureService: @unchecked Sendable {
     private(set) var audioLevel: Float = 0
     private(set) var waveformLevels: [Float] = Array(repeating: 0, count: 40)
 
-    var micPermissionGranted: Bool {
-        AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
-    }
+    /// Stored, not read live from AVCaptureDevice, so views redraw when it changes.
+    /// AVCaptureDevice posts no change notification, so it is refreshed after a request
+    /// and whenever Sotto becomes active (the user may have flipped it in System Settings).
+    private(set) var microphoneAuthorization = AVCaptureDevice.authorizationStatus(for: .audio)
+
+    var micPermissionGranted: Bool { microphoneAuthorization == .authorized }
+
+    private var activationObserver: NSObjectProtocol?
 
     var selectedDeviceID: AudioDeviceID?
 
@@ -50,10 +55,54 @@ final class AudioCaptureService: @unchecked Sendable {
 
     var hasMicrophonePermission: Bool { micPermissionGranted }
 
+    init() {
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.refreshMicrophoneAuthorization()
+        }
+    }
+
+    deinit {
+        if let activationObserver {
+            NotificationCenter.default.removeObserver(activationObserver)
+        }
+    }
+
+    /// macOS only shows the permission prompt once. After the user has answered, or
+    /// when the app's signature changed since access was granted, the only way to
+    /// grant access is the Microphone pane in System Settings, so open it.
     func requestMicrophonePermission() async -> Bool {
-        if micPermissionGranted { return true }
-        let granted = await AVCaptureDevice.requestAccess(for: .audio)
-        return granted
+        refreshMicrophoneAuthorization()
+
+        switch microphoneAuthorization {
+        case .authorized:
+            return true
+        case .notDetermined:
+            let granted = await AVCaptureDevice.requestAccess(for: .audio)
+            refreshMicrophoneAuthorization()
+            return granted
+        case .denied, .restricted:
+            openMicrophoneSettings()
+            return false
+        @unknown default:
+            openMicrophoneSettings()
+            return false
+        }
+    }
+
+    private func refreshMicrophoneAuthorization() {
+        let status = AVCaptureDevice.authorizationStatus(for: .audio)
+        // Assigning the same value would still invalidate every observing view.
+        guard status != microphoneAuthorization else { return }
+        microphoneAuthorization = status
+    }
+
+    private func openMicrophoneSettings() {
+        guard let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Microphone") else { return }
+        NSWorkspace.shared.open(url)
     }
 
     var totalBufferDuration: TimeInterval {

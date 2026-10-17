@@ -80,21 +80,21 @@ final class ModelManager {
         SottoModel(id: "parakeet-tdt-0.6b-v2", displayName: "Parakeet v2", size: "~600 MB", engine: .parakeet,
                    speed: 0.95, accuracy: 0.9, languages: "English only",
                    description: "Extremely fast, optimized for English"),
-        SottoModel(id: "parakeet-tdt-0.6b-v3", displayName: "Parakeet v3", size: "~600 MB", engine: .parakeet,
-                   speed: 0.9, accuracy: 0.9, languages: "25 European languages",
-                   description: "Fast and accurate with multilingual support"),
-        SottoModel(id: "nemotron-3.5-asr-0.6b", displayName: "Nemotron ASR", size: "~700 MB", engine: .mlx,
-                   speed: 0.9, accuracy: 0.85, languages: "35+ languages",
-                   description: "NVIDIA FastConformer RNN-T, streaming-capable, 35+ languages"),
+        SottoModel(id: "parakeet-ultra", displayName: "Parakeet Ultra", size: "~630 MB", engine: .parakeet,
+                   speed: 0.9, accuracy: 0.95, languages: "25 European languages",
+                   description: "Retrained v3, more accurate in every language at the same speed"),
+        SottoModel(id: "phonon-2", displayName: "Phonon-2", size: "~360 MB", engine: .parakeet,
+                   speed: 1.0, accuracy: 0.88, languages: "English only",
+                   description: "Fastest Parakeet-family model, compact and English-only"),
+        SottoModel(id: "qwen3-asr-0.6b", displayName: "Qwen3 ASR", size: "~1 GB", engine: .mlx,
+                   speed: 0.75, accuracy: 0.85, languages: "52 languages",
+                   description: "Alibaba's multilingual ASR with automatic language detection"),
+        SottoModel(id: "qwen3-asr-1.7b", displayName: "Qwen3 ASR Large", size: "~1.6 GB", engine: .mlx,
+                   speed: 0.55, accuracy: 0.92, languages: "52 languages",
+                   description: "Larger Qwen3 ASR for the best multilingual accuracy"),
         SottoModel(id: "sensevoice-small", displayName: "SenseVoice", size: "~890 MB", engine: .mlx,
                    speed: 0.85, accuracy: 0.8, languages: "5 languages",
                    description: "FunAudioLLM multilingual ASR with emotion detection"),
-        SottoModel(id: "moonshine-tiny", displayName: "Moonshine Tiny", size: "~90 MB", engine: .mlx,
-                   speed: 1.0, accuracy: 0.5, languages: "English",
-                   description: "Ultra-light English-only, fastest option available"),
-        SottoModel(id: "moonshine-base", displayName: "Moonshine Base", size: "~360 MB", engine: .mlx,
-                   speed: 0.95, accuracy: 0.65, languages: "English",
-                   description: "Fast English ASR by Useful Sensors, good for notes"),
     ]
 
     var isModelReady: Bool { activeEngine != nil && loadedModelId != nil }
@@ -116,18 +116,20 @@ final class ModelManager {
             .mlx: MLXEngine(),
         ]
 
-        let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId)
-        self.selectedModelId = savedId
-
-        if let savedId, Self.availableModels.contains(where: { $0.id == savedId }) {
-            self.state = .loading
-        }
-
         self.downloadedModelIds = Set(
             Self.availableModels
                 .filter { self.engines[$0.engine]?.isModelDownloaded($0) ?? false }
                 .map(\.id)
         )
+
+        let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId)
+        self.selectedModelId = savedId
+
+        // Only claim .loading when restoreLastModel will actually load something,
+        // otherwise the row shows "Loading..." forever with nothing behind it.
+        if let savedId, downloadedModelIds.contains(savedId) || Self.replacedModelIds[savedId] != nil {
+            self.state = .loading
+        }
     }
 
     func loadModel(_ model: SottoModel) {
@@ -251,9 +253,24 @@ final class ModelManager {
         downloadedModelIds.contains(model.id)
     }
 
+    /// Models Sotto no longer ships, mapped to the model that replaced them.
+    private static let replacedModelIds = [
+        "parakeet-tdt-0.6b-v3": "parakeet-ultra",
+    ]
+
     func restoreLastModel() {
-        guard let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId),
-              let model = Self.availableModels.first(where: { $0.id == savedId }),
+        guard let savedId = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedModelId) else { return }
+
+        // The saved model was retired in an update. Move to its replacement even if that
+        // means a download, so updating never leaves dictation without a model.
+        if let replacementId = Self.replacedModelIds[savedId],
+           let replacement = Self.availableModels.first(where: { $0.id == replacementId }) {
+            logger.info("Saved model \(savedId) was retired, switching to \(replacementId)")
+            loadModel(replacement)
+            return
+        }
+
+        guard let model = Self.availableModels.first(where: { $0.id == savedId }),
               isModelDownloaded(model) else { return }
         loadModel(model)
     }
@@ -268,8 +285,14 @@ final class ModelManager {
 
 enum TranscriptionError: LocalizedError {
     case engineNotConfigured
+    case unknownModel(String)
 
     var errorDescription: String? {
-        "No model loaded. Please download and select a model in Settings."
+        switch self {
+        case .engineNotConfigured:
+            "No model loaded. Please download and select a model in Settings."
+        case .unknownModel(let id):
+            "Unknown model \"\(id)\"."
+        }
     }
 }

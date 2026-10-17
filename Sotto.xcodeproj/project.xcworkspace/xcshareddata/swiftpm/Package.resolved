@@ -15,7 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/FluidInference/FluidAudio.git",
       "state" : {
-        "revision" : "2ea0727541135c34189194084531337a3518e1bf"
+        "revision" : "503b4bd1bbf7220882de39fe8ae6716aae4132da",
+        "version" : "0.17.7"
       }
     },
     {
@@ -23,8 +24,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Blaizzy/mlx-audio-swift.git",
       "state" : {
-        "branch" : "main",
-        "revision" : "cae704f53bc32a3d0b606823828fbc5bedaaf388"
+        "revision" : "8d86630ade569728aaea3dc1a29fc44e2efa719b",
+        "version" : "0.1.4"
       }
     },
     {

@@ -14,6 +14,8 @@ enum UserDefaultsKeys {
 
     static let continuityEnabled = "continuityEnabled"
 
+    static let selectedSettingsTab = "selectedSettingsTab"
+
     // Hotkeys
     static let hybridHotkey = "hybridHotkey"
     static let pttHotkey = "pttHotkey"

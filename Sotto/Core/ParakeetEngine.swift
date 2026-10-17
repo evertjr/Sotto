@@ -10,8 +10,14 @@ final class ParakeetEngine: TranscriptionEngine {
 
     private var asrManager: AsrManager?
 
+    init() {
+        removeRetiredModels()
+    }
+
     func loadModel(_ model: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws {
-        let version = parakeetVersion(for: model)
+        guard let version = parakeetVersion(for: model) else {
+            throw TranscriptionError.unknownModel(model.id)
+        }
 
         onPhaseChange(.downloading(progress: 0))
         let models = try await AsrModels.downloadAndLoad(version: version) { progress in
@@ -38,13 +44,13 @@ final class ParakeetEngine: TranscriptionEngine {
     }
 
     func deleteModel(_ model: SottoModel) {
-        let version = parakeetVersion(for: model)
+        guard let version = parakeetVersion(for: model) else { return }
         let cacheDir = AsrModels.defaultCacheDirectory(for: version)
         try? FileManager.default.removeItem(at: cacheDir)
     }
 
     func isModelDownloaded(_ model: SottoModel) -> Bool {
-        let version = parakeetVersion(for: model)
+        guard let version = parakeetVersion(for: model) else { return false }
         let cacheDir = AsrModels.defaultCacheDirectory(for: version)
         return AsrModels.modelsExist(at: cacheDir, version: version)
     }
@@ -72,7 +78,29 @@ final class ParakeetEngine: TranscriptionEngine {
         return SottoTranscription(text: text, detectedLanguage: nil, duration: duration)
     }
 
-    private func parakeetVersion(for model: SottoModel) -> AsrModelVersion {
-        model.id.contains("v3") ? .v3 : .v2
+    private func parakeetVersion(for model: SottoModel) -> AsrModelVersion? {
+        switch model.id {
+        case "parakeet-tdt-0.6b-v2": .v2
+        case "parakeet-ultra": .ultra
+        case "phonon-2": .phonon2
+        default: nil
+        }
+    }
+
+    /// Versions Sotto used to ship. Nothing in the model list can delete them anymore,
+    /// so their files are removed here. Parakeet v3 was replaced by Ultra.
+    private static let retiredVersions: [AsrModelVersion] = [.v3]
+
+    private func removeRetiredModels() {
+        for version in Self.retiredVersions {
+            let cacheDir = AsrModels.defaultCacheDirectory(for: version)
+            guard FileManager.default.fileExists(atPath: cacheDir.path) else { continue }
+            do {
+                try FileManager.default.removeItem(at: cacheDir)
+                logger.info("Removed retired model files at \(cacheDir.path)")
+            } catch {
+                logger.error("Could not remove retired model files: \(error.localizedDescription)")
+            }
+        }
     }
 }

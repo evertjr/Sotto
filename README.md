@@ -44,7 +44,11 @@ Sotto lives in your menu bar and stays out of your way. A floating waveform pill
 | Whisper Large Turbo | WhisperKit | ~800 MB | Slower | 99+ |
 | Whisper Large v3 | WhisperKit | ~1.5 GB | Slowest | 99+ |
 | Parakeet v2 | FluidAudio | ~600 MB | Very fast | English |
-| Parakeet v3 | FluidAudio | ~600 MB | Very fast | 25 European |
+| Parakeet Ultra | FluidAudio | ~630 MB | Very fast | 25 European |
+| Phonon-2 | FluidAudio | ~360 MB | Fastest | English |
+| Qwen3 ASR | MLX Audio | ~1 GB | Moderate | 52 |
+| Qwen3 ASR Large | MLX Audio | ~1.6 GB | Slower | 52 |
+| SenseVoice | MLX Audio | ~890 MB | Fast | 5 (zh, yue, en, ja, ko) |
 
 Models are downloaded on first use and stored locally. The app recommends a model based on your hardware during onboarding.
 
@@ -52,7 +56,7 @@ Models are downloaded on first use and stored locally. The app recommends a mode
 
 1. Clone the repo
 2. Open `Sotto.xcodeproj` in Xcode 26+
-3. Xcode will resolve the Swift Package dependencies (WhisperKit, FluidAudio, Sparkle)
+3. Xcode will resolve the Swift Package dependencies (WhisperKit, FluidAudio, mlx-audio-swift, Sparkle)
 4. Build and run
 
 The app requires hardened runtime with the `com.apple.security.device.audio-input` entitlement. Sandbox is disabled because global hotkeys and accessibility-based text insertion are not possible in sandboxed apps.

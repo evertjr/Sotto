@@ -24,7 +24,9 @@ final class MLXEngine: TranscriptionEngine {
     // MARK: - TranscriptionEngine
 
     func loadModel(_ sottoModel: SottoModel, onPhaseChange: @escaping (LoadPhase) -> Void) async throws {
-        let def = mlxModelDef(for: sottoModel)
+        guard let def = mlxModelDef(for: sottoModel) else {
+            throw TranscriptionError.unknownModel(sottoModel.id)
+        }
 
         let cache = HubCache(cacheDirectory: modelsDirectory)
         let hfToken = ProcessInfo.processInfo.environment["HF_TOKEN"]
@@ -63,12 +65,10 @@ final class MLXEngine: TranscriptionEngine {
         // fromPretrained, which would re-download without progress reporting.
         let loaded: any STTGenerationModel
         switch def.architecture {
-        case .nemotron:
-            loaded = try NemotronASRModel.fromDirectory(modelDir)
+        case .qwen3:
+            loaded = try await Qwen3ASRModel.fromModelDirectory(modelDir)
         case .senseVoice:
             loaded = try SenseVoiceModel.fromDirectory(modelDir)
-        case .moonshine:
-            loaded = try await MoonshineModel.fromModelDirectory(modelDir)
         }
 
         try Task.checkCancellation()
@@ -84,7 +84,7 @@ final class MLXEngine: TranscriptionEngine {
     }
 
     func deleteModel(_ sottoModel: SottoModel) {
-        let def = mlxModelDef(for: sottoModel)
+        guard let def = mlxModelDef(for: sottoModel) else { return }
         let modelSubdir = def.repoId.replacingOccurrences(of: "/", with: "_")
         let mlxAudioDir = modelsDirectory
             .appendingPathComponent("mlx-audio")
@@ -96,7 +96,7 @@ final class MLXEngine: TranscriptionEngine {
     }
 
     func isModelDownloaded(_ sottoModel: SottoModel) -> Bool {
-        let def = mlxModelDef(for: sottoModel)
+        guard let def = mlxModelDef(for: sottoModel) else { return false }
         let modelSubdir = def.repoId.replacingOccurrences(of: "/", with: "_")
         let mlxAudioDir = modelsDirectory
             .appendingPathComponent("mlx-audio")
@@ -178,31 +178,29 @@ final class MLXEngine: TranscriptionEngine {
         let architecture: Architecture
 
         enum Architecture: String {
-            case nemotron
+            case qwen3
             case senseVoice
-            case moonshine
         }
     }
 
-    private func mlxModelDef(for sottoModel: SottoModel) -> MLXModelDef {
+    private func mlxModelDef(for sottoModel: SottoModel) -> MLXModelDef? {
         switch sottoModel.id {
-        case "nemotron-3.5-asr-0.6b":
-            return MLXModelDef(repoId: "mlx-community/nemotron-3.5-asr-streaming-0.6b-8bit", architecture: .nemotron)
+        case "qwen3-asr-0.6b":
+            MLXModelDef(repoId: "mlx-community/Qwen3-ASR-0.6B-8bit", architecture: .qwen3)
+        case "qwen3-asr-1.7b":
+            MLXModelDef(repoId: "mlx-community/Qwen3-ASR-1.7B-4bit", architecture: .qwen3)
         case "sensevoice-small":
-            return MLXModelDef(repoId: "mlx-community/SenseVoiceSmall", architecture: .senseVoice)
-        case "moonshine-tiny":
-            return MLXModelDef(repoId: "mlx-community/moonshine-tiny", architecture: .moonshine)
-        case "moonshine-base":
-            return MLXModelDef(repoId: "mlx-community/moonshine-base", architecture: .moonshine)
+            MLXModelDef(repoId: "mlx-community/SenseVoiceSmall", architecture: .senseVoice)
         default:
-            return MLXModelDef(repoId: sottoModel.id, architecture: .nemotron)
+            nil
         }
     }
 }
 
 /// Carries a non-Sendable model reference onto `mlxQueue`. Safe because the queue is
-/// serial and is the only place the model is ever used.
-private struct UncheckedBox<T>: @unchecked Sendable {
+/// serial and is the only place the model is ever used. `nonisolated` opts out of the
+/// target's default MainActor isolation so the queue can read `value`.
+nonisolated private struct UncheckedBox<T>: @unchecked Sendable {
     let value: T
     init(_ value: T) { self.value = value }
 }

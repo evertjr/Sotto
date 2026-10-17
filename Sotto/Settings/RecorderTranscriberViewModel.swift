@@ -27,7 +27,7 @@ final class RecorderTranscriberViewModel {
 
     func startRecording() {
         guard captureService.hasMicrophonePermission else {
-            phase = .error("Microphone permission required.")
+            phase = .error(String(localized: "Microphone permission required."))
             return
         }
         do {
@@ -49,7 +49,7 @@ final class RecorderTranscriberViewModel {
         audioLevel = 0
 
         guard !samples.isEmpty, recordingDuration >= 0.3 else {
-            phase = .error("Recording too short.")
+            phase = .error(String(localized: "Recording too short."))
             return
         }
         transcribe(samples: samples)
@@ -63,13 +63,13 @@ final class RecorderTranscriberViewModel {
             do {
                 let samples = try await loadAudioSamples(from: url)
                 guard !samples.isEmpty else {
-                    phase = .error("No audio data in file.")
+                    phase = .error(String(localized: "No audio data in file."))
                     return
                 }
                 recordingDuration = Double(samples.count) / 16_000
                 transcribe(samples: samples)
             } catch {
-                phase = .error("Could not load audio: \(error.localizedDescription)")
+                phase = .error(String(localized: "Could not load audio: \(error.localizedDescription)"))
             }
         }
     }
@@ -78,7 +78,7 @@ final class RecorderTranscriberViewModel {
 
     private func transcribe(samples: [Float]) {
         guard let mm = modelManager, mm.isModelReady else {
-            phase = .error("No model loaded. Please download and select a model in Settings.")
+            phase = .error(String(localized: "No model loaded. Please download and select a model in Settings."))
             return
         }
         phase = .transcribing
@@ -87,7 +87,7 @@ final class RecorderTranscriberViewModel {
                 let language = UserDefaults.standard.string(forKey: UserDefaultsKeys.selectedLanguage)
                 let result = try await mm.transcribe(samples: samples, language: language)
                 let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                phase = text.isEmpty ? .error("No speech detected.") : .done(text)
+                phase = text.isEmpty ? .error(String(localized: "No speech detected.")) : .done(text)
             } catch {
                 phase = .error(error.localizedDescription)
             }
@@ -131,7 +131,9 @@ final class RecorderTranscriberViewModel {
 
 // MARK: - Audio file loading
 
-private func loadAudioSamples(from url: URL) async throws -> [Float] {
+/// Decodes and resamples the whole file, which can take seconds for long recordings.
+/// `@concurrent` keeps it off the MainActor that the target isolates everything to by default.
+@concurrent nonisolated private func loadAudioSamples(from url: URL) async throws -> [Float] {
     let file = try AVAudioFile(forReading: url)
     let format = file.processingFormat
 
@@ -157,8 +159,9 @@ private func loadAudioSamples(from url: URL) async throws -> [Float] {
     }
     try file.read(into: inputBuffer)
 
+    // Headroom for the frames the resampler holds back until it is flushed.
     let ratio = targetFormat.sampleRate / format.sampleRate
-    let outputFrameCount = AVAudioFrameCount(Double(inputBuffer.frameLength) * ratio)
+    let outputFrameCount = AVAudioFrameCount((Double(inputBuffer.frameLength) * ratio).rounded(.up)) + 1024
     guard let outputBuffer = AVAudioPCMBuffer(pcmFormat: targetFormat, frameCapacity: outputFrameCount) else {
         throw NSError(domain: "Recorder", code: 5, userInfo: [NSLocalizedDescriptionKey: "Cannot allocate output buffer"])
     }
@@ -166,8 +169,9 @@ private func loadAudioSamples(from url: URL) async throws -> [Float] {
     var error: NSError?
     var consumed = false
     converter.convert(to: outputBuffer, error: &error) { _, outStatus in
+        // .endOfStream, not .noDataNow, so the resampler flushes its tail.
         if consumed {
-            outStatus.pointee = .noDataNow
+            outStatus.pointee = .endOfStream
             return nil
         }
         consumed = true

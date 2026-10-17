@@ -1,11 +1,9 @@
 import SwiftUI
-import AVFoundation
 
 struct OnboardingView: View {
     let coordinator: DictationCoordinator
     @State private var step = 0
     @State private var shortcutLabel = ""
-    @State private var micGranted = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized
     @Environment(\.dismiss) private var dismiss
     let onComplete: () -> Void
 
@@ -54,7 +52,7 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             Spacer()
 
-            if micGranted {
+            if coordinator.audioCaptureService.micPermissionGranted {
                 AuroraWaveform(level: coordinator.audioDeviceService.previewAudioLevel, preset: coordinator.waveformPreset)
                     .frame(height: 60)
                     .frame(maxWidth: 300)
@@ -74,14 +72,13 @@ struct OnboardingView: View {
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: 360)
 
-            if micGranted {
+            if coordinator.audioCaptureService.micPermissionGranted {
                 Label("Microphone access granted", systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
             } else {
                 Button("Allow Microphone Access") {
                     Task {
-                        let granted = await coordinator.audioCaptureService.requestMicrophonePermission()
-                        micGranted = granted
+                        _ = await coordinator.audioCaptureService.requestMicrophonePermission()
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -90,7 +87,7 @@ struct OnboardingView: View {
 
             Spacer()
 
-            nextButton("Continue", enabled: micGranted)
+            nextButton("Continue", enabled: coordinator.audioCaptureService.micPermissionGranted)
         }
         .padding(40)
     }
@@ -145,13 +142,9 @@ struct OnboardingView: View {
 
     private var recommendedModel: SottoModel {
         let ramGB = ProcessInfo.processInfo.physicalMemory / (1024 * 1024 * 1024)
-        if ramGB >= 16 {
-            return ModelManager.availableModels.first { $0.id == "parakeet-tdt-0.6b-v3" }!
-        } else if ramGB >= 8 {
-            return ModelManager.availableModels.first { $0.id == "parakeet-tdt-0.6b-v3" }!
-        } else {
-            return ModelManager.availableModels.first { $0.id == "openai_whisper-small" }!
-        }
+        let id = ramGB >= 8 ? "parakeet-ultra" : "openai_whisper-small"
+        // Falls back to the first model instead of crashing if this ID is ever retired.
+        return ModelManager.availableModels.first { $0.id == id } ?? ModelManager.availableModels[0]
     }
 
     private var otherModels: [SottoModel] {

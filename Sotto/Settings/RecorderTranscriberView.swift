@@ -30,6 +30,9 @@ struct RecorderTranscriberView: View {
                 viewModel.transcribeFile(at: url)
             }
         }
+        .onChange(of: viewModel.phase) { _, phase in
+            announce(phase)
+        }
     }
 
     // MARK: - Header
@@ -39,8 +42,10 @@ struct RecorderTranscriberView: View {
             Image(systemName: "waveform.badge.mic")
                 .font(.largeTitle)
                 .foregroundStyle(.tint)
+                .accessibilityHidden(true)
             Text("Transcribe Audio")
                 .font(.title2.bold())
+                .accessibilityAddTraits(.isHeader)
             Text("Record yourself or import an audio file, then copy the full transcription.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -55,15 +60,17 @@ struct RecorderTranscriberView: View {
         HStack(spacing: 8) {
             Image(systemName: viewModel.canTranscribe ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                 .foregroundStyle(viewModel.canTranscribe ? .green : .orange)
+                .accessibilityHidden(true)
             if let name = viewModel.activeModelName {
                 Text("Active model: \(name)")
                     .font(.callout)
             } else {
-                Text("No model loaded — go to Settings → Model to download one.")
+                Text("No model loaded. Download one in the Model tab.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -77,6 +84,7 @@ struct RecorderTranscriberView: View {
         VStack(spacing: 12) {
             Text("Record")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 16) {
@@ -95,6 +103,9 @@ struct RecorderTranscriberView: View {
                         ProgressView()
                             .controlSize(.small)
                     }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Recording")
+                    .accessibilityValue(spokenDuration(viewModel.recordingDuration))
                 } else {
                     Button {
                         viewModel.startRecording()
@@ -116,6 +127,7 @@ struct RecorderTranscriberView: View {
         VStack(spacing: 12) {
             Text("Import File")
                 .font(.headline)
+                .accessibilityAddTraits(.isHeader)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
@@ -147,6 +159,7 @@ struct RecorderTranscriberView: View {
                 Text("Loading audio file...")
                     .foregroundStyle(.secondary)
             }
+            .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity, alignment: .leading)
         case .transcribing:
             HStack(spacing: 8) {
@@ -154,12 +167,14 @@ struct RecorderTranscriberView: View {
                 Text("Transcribing...")
                     .foregroundStyle(.secondary)
             }
+            .accessibilityElement(children: .combine)
             .frame(maxWidth: .infinity, alignment: .leading)
         case .done(let text):
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Transcription")
                         .font(.headline)
+                        .accessibilityAddTraits(.isHeader)
                     Spacer()
                     Button {
                         viewModel.copyText()
@@ -180,6 +195,7 @@ struct RecorderTranscriberView: View {
                     Text("Duration: \(formatDuration(viewModel.recordingDuration))")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityLabel("Duration: \(spokenDuration(viewModel.recordingDuration))")
                 }
 
                 Button {
@@ -194,6 +210,7 @@ struct RecorderTranscriberView: View {
                 HStack(spacing: 6) {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundStyle(.orange)
+                        .accessibilityHidden(true)
                     Text(message)
                         .font(.callout)
                 }
@@ -216,5 +233,22 @@ struct RecorderTranscriberView: View {
         let m = Int(seconds) / 60
         let s = Int(seconds) % 60
         return String(format: "%d:%02d", m, s)
+    }
+
+    /// "1 minute, 5 seconds" instead of "1:05", which VoiceOver reads as a ratio.
+    private func spokenDuration(_ seconds: TimeInterval) -> String {
+        Duration.seconds(Int(seconds)).formatted(.units(allowed: [.minutes, .seconds], width: .wide))
+    }
+
+    /// Results appear without focus moving, so VoiceOver users need to hear the outcome.
+    private func announce(_ phase: RecorderTranscriberViewModel.Phase) {
+        switch phase {
+        case .done:
+            AccessibilityNotification.Announcement(String(localized: "Transcription complete")).post()
+        case .error(let message):
+            AccessibilityNotification.Announcement(message).post()
+        case .idle, .recording, .loading, .transcribing:
+            break
+        }
     }
 }
