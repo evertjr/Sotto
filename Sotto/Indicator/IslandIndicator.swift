@@ -14,8 +14,13 @@ final class IslandGeometry {
 
     /// The notch the island grows out of, or nil on screens without one.
     var notch: CGSize?
+    /// Whether this is the Mac's own display, which has a camera at the top. External displays don't.
+    var isBuiltIn = false
 
     func update(for screen: NSScreen) {
+        let screenNumber = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber
+        isBuiltIn = screenNumber.map { CGDisplayIsBuiltin($0.uint32Value) != 0 } ?? false
+
         let top = screen.safeAreaInsets.top
         guard top > 0,
               let left = screen.auxiliaryTopLeftArea?.width,
@@ -132,13 +137,14 @@ private struct IslandLayout {
     /// Notices need more room than the waveform on the floating capsule.
     let expandedWithNotice: CGSize
 
-    init(notch: CGSize?) {
+    init(notch: CGSize?, isBuiltIn: Bool) {
         guard let notch else {
             hasNotch = false
             topInset = 6
             // On Dynamic Island Macs the camera sits about 16 to 19pt from the top of the screen
-            // (measured from Apple's screenshots), so this band keeps it in solid black, above the waveform.
-            solidHeight = 20
+            // (measured from Apple's screenshots), so this band keeps it in solid black, above the
+            // waveform. External displays have no camera, so their waveform stays centered.
+            solidHeight = isBuiltIn ? 20 : 0
             collapsed = CGSize(width: 80, height: 24)
             expanded = CGSize(width: 160, height: 58)
             expandedWithNotice = CGSize(width: 320, height: 58)
@@ -224,7 +230,7 @@ private struct IslandContainer: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var layout: IslandLayout {
-        IslandLayout(notch: geometry.notch)
+        IslandLayout(notch: geometry.notch, isBuiltIn: geometry.isBuiltIn)
     }
 
     private var size: CGSize {
@@ -263,7 +269,8 @@ private struct IslandContainer: View {
     }
 
     var body: some View {
-        let solidFraction = layout.solidHeight / size.height
+        // Without a band to hide, the top still starts black before fading into the glass.
+        let solidFraction = max(layout.solidHeight / size.height, 0.15)
 
         ZStack(alignment: .top) {
             IslandSurface(shape: layout.shape(for: size), solidFraction: solidFraction)
@@ -424,6 +431,19 @@ private struct IslandSurface: View {
                     // The glass draws refraction and shadow past its frame, so clip it back. No
                     // compositing group: flattening it offscreen would cut it off from the backdrop.
                     .clipShape(shape)
+                    // Under the solid black the glass is invisible anyway, except for its bright rim,
+                    // which peeks out as a thin line along the top edge. Fade the glass out there.
+                    .mask {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0),
+                                .init(color: .clear, location: solidEnd),
+                                .init(color: .black, location: min(solidEnd + 0.2, 1)),
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    }
             }
     }
 }
