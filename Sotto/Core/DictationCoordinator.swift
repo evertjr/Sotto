@@ -14,6 +14,8 @@ final class DictationCoordinator {
         case recording
         case processing
         case inserting
+        /// The paste didn't land, so the transcript was left on the clipboard.
+        case copiedToClipboard
         case error(String)
     }
 
@@ -85,9 +87,8 @@ final class DictationCoordinator {
         self.soundFeedbackEnabled = UserDefaults.standard.object(forKey: UserDefaultsKeys.soundFeedbackEnabled) as? Bool ?? true
         self.waveformPreset = UserDefaults.standard.string(forKey: UserDefaultsKeys.waveformColorPreset)
             .flatMap { WaveformColorPreset(rawValue: $0) } ?? .aurora
-        let hasNotch = NSScreen.main?.safeAreaInsets.top ?? 0 > 0
         self.indicatorStyle = UserDefaults.standard.string(forKey: UserDefaultsKeys.indicatorStyle)
-            .flatMap { IndicatorStyle(rawValue: $0) } ?? (hasNotch ? .notch : .pill)
+            .flatMap { IndicatorStyle(rawValue: $0) } ?? .island
         self.polishEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.refineEnabled)
         self.translateEnabled = UserDefaults.standard.bool(forKey: UserDefaultsKeys.translateEnabled)
         self.translateTargetLanguage = UserDefaults.standard.string(forKey: UserDefaultsKeys.translateTargetLanguage) ?? ""
@@ -96,7 +97,7 @@ final class DictationCoordinator {
     }
 
     private var floatingIndicator: FloatingIndicatorController?
-    private var notchIndicator: NotchIndicatorController?
+    private var islandIndicator: IslandIndicatorController?
 
     func start() {
         setupBindings()
@@ -106,9 +107,9 @@ final class DictationCoordinator {
         pill.startObserving(self)
         floatingIndicator = pill
 
-        let notch = NotchIndicatorController()
-        notch.startObserving(self)
-        notchIndicator = notch
+        let island = IslandIndicatorController()
+        island.startObserving(self)
+        islandIndicator = island
 
         modelManager.restoreLastModel()
     }
@@ -126,6 +127,10 @@ final class DictationCoordinator {
 
         hotkeyService.onCancelPressed = { [weak self] in
             self?.cancelDictation()
+        }
+
+        hotkeyService.onPasteLastTranscription = { [weak self] in
+            self?.pasteLastTranscription()
         }
 
         hotkeyService.discardPushToTalkRecordingOnExtraKeyPress = true
@@ -158,12 +163,12 @@ final class DictationCoordinator {
         errorResetTask = nil
 
         guard canDictate else {
-            showError("No model loaded. Please download and select a model first.")
+            showError(String(localized: "No model loaded. Please download and select a model first."))
             return
         }
 
         guard audioCaptureService.hasMicrophonePermission else {
-            showError("Microphone permission required.")
+            showError(String(localized: "Microphone permission required."))
             return
         }
 
@@ -207,13 +212,13 @@ final class DictationCoordinator {
         let samples = audioCaptureService.stopCapture()
 
         guard !samples.isEmpty else {
-            showError("No audio data was recorded.")
+            showError(String(localized: "No audio data was recorded."))
             return
         }
 
         let duration = Double(samples.count) / 16_000
         guard duration >= 0.3 else {
-            showFeedback("Too short, hold the hotkey a bit longer")
+            showFeedback(String(localized: "Too short, hold the hotkey a bit longer"))
             return
         }
 
@@ -237,25 +242,65 @@ final class DictationCoordinator {
                 text = await processWithAI(text)
                 guard !Task.isCancelled else { return }
 
-                logger.info("Inserting text: '\(text)' (len=\(text.count))")
-                let insertionResult = try await textInsertionService.insertText(text, preserveClipboard: true)
-                logger.info("Text insertion result: \(String(describing: insertionResult))")
-
+                // Kept before inserting, so a failed insertion can still be recovered.
                 lastTranscribedText = text
                 partialText = ""
 
-                setState(.inserting)
-                insertingResetTask = Task {
-                    try? await Task.sleep(for: .seconds(1.5))
-                    guard !Task.isCancelled else { return }
-                    resetState()
-                }
+                logger.info("Inserting text: '\(text)' (len=\(text.count))")
+                try await insert(text)
             } catch {
                 guard !Task.isCancelled else { return }
                 logger.error("Dictation failed: \(error.localizedDescription)")
                 showError(error.localizedDescription)
             }
             self.transcriptionTask = nil
+        }
+    }
+
+    // MARK: - Insertion
+
+    /// Pastes the most recent transcript at the cursor, for when the original insertion
+    /// landed in the wrong app or didn't land at all.
+    func pasteLastTranscription() {
+        guard let text = lastTranscribedText else { return }
+        switch state {
+        case .recording, .processing:
+            return
+        case .idle, .inserting, .copiedToClipboard, .error:
+            break
+        }
+
+        Task {
+            do {
+                try await insert(text)
+            } catch {
+                logger.error("Paste last transcription failed: \(error.localizedDescription)")
+                showError(error.localizedDescription)
+            }
+        }
+    }
+
+    private func insert(_ text: String) async throws {
+        insertingResetTask?.cancel()
+        errorResetTask?.cancel()
+
+        let result = try await textInsertionService.insertText(text, preserveClipboard: true)
+        logger.info("Text insertion result: \(String(describing: result))")
+
+        let displayDuration: Duration
+        switch result {
+        case .pasted:
+            setState(.inserting)
+            displayDuration = .seconds(1.5)
+        case .copiedToClipboard:
+            setState(.copiedToClipboard)
+            displayDuration = .seconds(3)
+        }
+
+        insertingResetTask = Task {
+            try? await Task.sleep(for: displayDuration)
+            guard !Task.isCancelled else { return }
+            resetState()
         }
     }
 

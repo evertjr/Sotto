@@ -25,7 +25,21 @@ final class TextInsertionService {
 
 enum InsertionResult {
         case pasted
+        /// The focused text field didn't change after the paste, so the text was left on the clipboard.
+        case copiedToClipboard
     }
+
+    private enum PasteOutcome {
+        case confirmed
+        case notApplied
+        case unverifiable
+    }
+
+    /// How long a focused text field gets to show the pasted text. Apps read the pasteboard
+    /// asynchronously, and Electron apps or a busy browser can take well over 200ms.
+    private static let pasteConfirmationTimeout: Duration = .seconds(1)
+    /// Grace period before restoring the clipboard when there's no text field we can read.
+    private static let unverifiablePasteDelay: Duration = .milliseconds(500)
 
     enum TextInsertionError: LocalizedError {
         case accessibilityNotGranted
@@ -34,7 +48,7 @@ enum InsertionResult {
         var errorDescription: String? {
             switch self {
             case .accessibilityNotGranted:
-                "Accessibility permission not granted. Please enable it in System Settings → Privacy & Security → Accessibility."
+                String(localized: "Turn on Accessibility for Sotto in System Settings → Privacy & Security.")
             case .pasteFailed(let detail):
                 "Failed to paste text: \(detail)"
             }
@@ -387,6 +401,23 @@ enum InsertionResult {
         )
     }
 
+    /// Waits until the focused text field reflects the paste, so the clipboard is only
+    /// restored once the target app has read it.
+    private func waitForPaste(using state: PasteVerificationState) async -> PasteOutcome {
+        // Terminals and some Electron apps don't expose a readable text field. Paste blindly.
+        guard state.focusedTextState != nil else {
+            try? await Task.sleep(for: Self.unverifiablePasteDelay)
+            return .unverifiable
+        }
+
+        let deadline = ContinuousClock.now + Self.pasteConfirmationTimeout
+        while ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(50))
+            if canRestoreClipboard(afterPasteUsing: state) { return .confirmed }
+        }
+        return .notApplied
+    }
+
     func insertText(
         _ text: String,
         preserveClipboard: Bool = false,
@@ -418,16 +449,22 @@ enum InsertionResult {
 
         let pasteboard = pasteboardProvider()
         let savedItems = preserveClipboard ? saveClipboard(from: pasteboard) : []
+        let verificationState = capturePasteVerificationState()
 
-        // Set transcribed text on clipboard and simulate Cmd+V.
-        // Text stays on clipboard as fallback if no text field is focused.
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
         Self.logger.info("insertText: clipboard path — simulating Cmd+V")
         simulatePaste()
 
+        let outcome = await waitForPaste(using: verificationState)
+        Self.logger.info("insertText: paste outcome=\(String(describing: outcome))")
+
+        // When the paste didn't land, keep the text on the clipboard so it isn't lost.
+        if outcome == .notApplied {
+            return .copiedToClipboard
+        }
+
         if preserveClipboard {
-            try? await Task.sleep(for: .milliseconds(200))
             restoreClipboard(savedItems, to: pasteboard)
         }
 

@@ -92,7 +92,7 @@ enum HotkeySlotType: String, CaseIterable, Sendable {
     case toggle
     case promptPalette
     case recentTranscriptions
-    case copyLastTranscription
+    case pasteLastTranscription
     case recorderToggle
 
     var defaultsKey: String {
@@ -102,7 +102,7 @@ enum HotkeySlotType: String, CaseIterable, Sendable {
         case .toggle: return UserDefaultsKeys.toggleHotkey
         case .promptPalette: return UserDefaultsKeys.promptPaletteHotkey
         case .recentTranscriptions: return UserDefaultsKeys.recentTranscriptionsHotkey
-        case .copyLastTranscription: return UserDefaultsKeys.copyLastTranscriptionHotkey
+        case .pasteLastTranscription: return UserDefaultsKeys.pasteLastTranscriptionHotkey
         case .recorderToggle: return UserDefaultsKeys.recorderToggleHotkey
         }
     }

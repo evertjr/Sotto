@@ -71,6 +71,25 @@ private struct MenuBarContentView: View {
     let updater: SPUUpdater
 
     @AppStorage(UserDefaultsKeys.selectedSettingsTab) private var selectedSettingsTab: SettingsTab = .general
+    @AppStorage(UserDefaultsKeys.pasteLastTranscriptionHotkey) private var pasteLastHotkeyData: Data?
+
+    /// Mirrors the global hotkey in the menu, when it's a key combo a menu can display.
+    private var pasteLastShortcut: KeyboardShortcut? {
+        guard let pasteLastHotkeyData,
+              let hotkey = try? JSONDecoder().decode(UnifiedHotkey.self, from: pasteLastHotkeyData),
+              let descriptor = HotkeyService.menuShortcutDescriptor(for: hotkey),
+              // SwiftUI reserves the Fn modifier for system apps, and dropping it would show the wrong combo.
+              !descriptor.modifiers.contains(.function) else {
+            return nil
+        }
+
+        var modifiers: EventModifiers = []
+        if descriptor.modifiers.contains(.command) { modifiers.insert(.command) }
+        if descriptor.modifiers.contains(.option) { modifiers.insert(.option) }
+        if descriptor.modifiers.contains(.control) { modifiers.insert(.control) }
+        if descriptor.modifiers.contains(.shift) { modifiers.insert(.shift) }
+        return KeyboardShortcut(KeyEquivalent(descriptor.keyEquivalent), modifiers: modifiers)
+    }
 
     var body: some View {
         if coordinator.translateEnabled {
@@ -91,6 +110,12 @@ private struct MenuBarContentView: View {
 
             Divider()
         }
+
+        Button("Paste Last Transcription") {
+            coordinator.pasteLastTranscription()
+        }
+        .keyboardShortcut(pasteLastShortcut)
+        .disabled(coordinator.lastTranscribedText == nil)
 
         Button("Transcribe Audio...") {
             selectedSettingsTab = .transcribe

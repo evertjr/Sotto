@@ -4,6 +4,7 @@ struct OnboardingView: View {
     let coordinator: DictationCoordinator
     @State private var step = 0
     @State private var shortcutLabel = ""
+    @State private var accessibilityGranted = false
     @Environment(\.dismiss) private var dismiss
     let onComplete: () -> Void
 
@@ -12,8 +13,9 @@ struct OnboardingView: View {
             switch step {
             case 0: welcomeStep
             case 1: microphoneStep
-            case 2: shortcutStep
-            case 3: modelStep
+            case 2: accessibilityStep
+            case 3: shortcutStep
+            case 4: modelStep
             default: EmptyView()
             }
         }
@@ -90,6 +92,50 @@ struct OnboardingView: View {
             nextButton("Continue", enabled: coordinator.audioCaptureService.micPermissionGranted)
         }
         .padding(40)
+    }
+
+    // MARK: - Accessibility
+
+    private var accessibilityStep: some View {
+        VStack(spacing: 24) {
+            Spacer()
+
+            Image(systemName: "accessibility")
+                .font(.system(size: 56))
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+
+            Text("Accessibility Access")
+                .font(.title.weight(.bold))
+
+            Text("Sotto types your words into the app you're using, and listens for your shortcut in any app. macOS needs Accessibility access for both.")
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: 360)
+
+            if accessibilityGranted {
+                Label("Accessibility access granted", systemImage: "checkmark.circle.fill")
+                    .foregroundStyle(.green)
+            } else {
+                Button("Open Accessibility Settings") {
+                    coordinator.textInsertionService.requestAccessibilityPermission()
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+            }
+
+            Spacer()
+
+            nextButton("Continue", enabled: accessibilityGranted)
+        }
+        .padding(40)
+        .task {
+            // The grant happens in System Settings and there's no callback for it, so poll while this step is visible.
+            while !Task.isCancelled {
+                accessibilityGranted = coordinator.textInsertionService.isAccessibilityGranted
+                try? await Task.sleep(for: .seconds(1))
+            }
+        }
     }
 
     // MARK: - Shortcut
@@ -214,7 +260,7 @@ struct OnboardingView: View {
 
     // MARK: - Navigation
 
-    private func nextButton(_ title: String, enabled: Bool = true) -> some View {
+    private func nextButton(_ title: LocalizedStringKey, enabled: Bool = true) -> some View {
         Button(title) { withAnimation(.spring(response: 0.4)) { step += 1 } }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)

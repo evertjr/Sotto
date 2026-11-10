@@ -187,11 +187,18 @@ private struct WaveformPresetSwatch: View {
     let preset: WaveformColorPreset
 
     var body: some View {
-        HStack(spacing: 1) {
-            ForEach(0..<min(preset.colors.count, 4), id: \.self) { i in
-                Circle()
-                    .fill(preset.colors[i])
-                    .frame(width: 8, height: 8)
+        if preset.cyclesColors {
+            // Too many colors for dots, so show the whole palette as one strip.
+            Capsule()
+                .fill(LinearGradient(colors: preset.colors, startPoint: .leading, endPoint: .trailing))
+                .frame(width: 35, height: 8)
+        } else {
+            HStack(spacing: 1) {
+                ForEach(0..<min(preset.colors.count, 4), id: \.self) { i in
+                    Circle()
+                        .fill(preset.colors[i])
+                        .frame(width: 8, height: 8)
+                }
             }
         }
     }

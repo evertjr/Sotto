@@ -17,12 +17,11 @@ final class FloatingIndicatorController {
     }
 
     private func updateVisibility(state: DictationCoordinator.State, coordinator: DictationCoordinator) {
-        let screenHasNotch = NSScreen.main?.safeAreaInsets.top ?? 0 > 0
         let shouldShow: Bool
         switch state {
-        case .recording, .processing:
-            shouldShow = coordinator.indicatorStyle == .pill || (coordinator.indicatorStyle == .notch && !screenHasNotch)
-        default:
+        case .recording, .processing, .copiedToClipboard, .error:
+            shouldShow = coordinator.indicatorStyle == .pill
+        case .idle, .inserting:
             shouldShow = false
         }
 
@@ -86,8 +85,8 @@ private struct FloatingPillContainer: View {
 
     private var shouldShow: Bool {
         switch coordinator.state {
-        case .recording, .processing: true
-        default: false
+        case .recording, .processing, .copiedToClipboard, .error: true
+        case .idle, .inserting: false
         }
     }
 
@@ -123,6 +122,19 @@ private struct FloatingPillView: View {
     }
 
     var body: some View {
+        if let notice = IndicatorNotice(state: coordinator.state) {
+            IndicatorNoticeLabel(notice: notice)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .frame(maxWidth: 300)
+                .background(.black, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                .transition(.opacity)
+        } else {
+            waveform
+        }
+    }
+
+    private var waveform: some View {
         ZStack {
             AuroraWaveform(level: coordinator.audioLevel, preset: coordinator.waveformPreset)
                 .frame(width: 140, height: 28)

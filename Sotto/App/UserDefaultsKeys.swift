@@ -22,6 +22,6 @@ enum UserDefaultsKeys {
     static let toggleHotkey = "toggleHotkey"
     static let promptPaletteHotkey = "promptPaletteHotkey"
     static let recentTranscriptionsHotkey = "recentTranscriptionsHotkey"
-    static let copyLastTranscriptionHotkey = "copyLastTranscriptionHotkey"
+    static let pasteLastTranscriptionHotkey = "pasteLastTranscriptionHotkey"
     static let recorderToggleHotkey = "recorderToggleHotkey"
 }

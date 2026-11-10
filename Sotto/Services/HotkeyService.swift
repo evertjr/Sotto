@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import ApplicationServices
 import Carbon.HIToolbox
 import Combine
 import os
@@ -49,7 +50,7 @@ final class HotkeyService: ObservableObject {
     var onDictationStop: (() -> Void)?
     var onPromptPaletteToggle: (() -> Void)?
     var onRecentTranscriptionsToggle: (() -> Void)?
-    var onCopyLastTranscription: (() -> Void)?
+    var onPasteLastTranscription: (() -> Void)?
     var onRecorderToggle: (() -> Void)?
     var onProfileDictationStart: ((UUID) -> Void)?
     var onWorkflowDictationStart: ((UUID) -> Void)?
@@ -100,7 +101,7 @@ final class HotkeyService: ObservableObject {
         .toggle: SlotState(),
         .promptPalette: SlotState(),
         .recentTranscriptions: SlotState(),
-        .copyLastTranscription: SlotState(),
+        .pasteLastTranscription: SlotState(),
         .recorderToggle: SlotState(),
     ]
 
@@ -159,6 +160,7 @@ final class HotkeyService: ObservableObject {
     private var localMonitor: Any?
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var eventTapRetryTimer: Timer?
     private var recentEventTapDispatches: [HotkeyDispatchKey: Date] = [:]
     private var capsLockOriginSuppressionUntil: Date?
 
@@ -300,6 +302,23 @@ final class HotkeyService: ObservableObject {
         // Fallback: NSEvent monitors (no event suppression)
         logger.info("CGEventTap unavailable, falling back to NSEvent monitors (hotkey events will pass through)")
         installEventMonitors(includeMouse: true)
+
+        if !AXIsProcessTrusted() {
+            scheduleEventTapRetry()
+        }
+    }
+
+    /// The event tap needs Accessibility, which is usually granted after launch. Without the tap,
+    /// key shortcuts like ⌘E don't fire, so rebuild the monitors as soon as the permission lands.
+    private func scheduleEventTapRetry() {
+        eventTapRetryTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                // The timer may have been torn down (e.g. while recording a shortcut) before this ran.
+                guard let self, eventTapRetryTimer != nil, AXIsProcessTrusted() else { return }
+                logger.info("Accessibility granted, retrying CGEventTap")
+                setupMonitor()
+            }
+        }
     }
 
     private func installEventMonitors(includeMouse: Bool) {
@@ -328,8 +347,11 @@ final class HotkeyService: ObservableObject {
             NSEvent.removeMonitor(monitor)
             localMonitor = nil
         }
+        eventTapRetryTimer?.invalidate()
+        eventTapRetryTimer = nil
         if let tap = eventTap {
             CGEvent.tapEnable(tap: tap, enable: false)
+            CFMachPortInvalidate(tap)
             eventTap = nil
         }
         if let source = runLoopSource {
@@ -1006,8 +1028,8 @@ final class HotkeyService: ObservableObject {
             onRecentTranscriptionsToggle?()
             return
         }
-        if slotType == .copyLastTranscription {
-            onCopyLastTranscription?()
+        if slotType == .pasteLastTranscription {
+            onPasteLastTranscription?()
             return
         }
         if slotType == .recorderToggle {
@@ -1066,7 +1088,7 @@ final class HotkeyService: ObservableObject {
             break // handled on keyDown only
         case .recentTranscriptions:
             break // handled on keyDown only
-        case .copyLastTranscription:
+        case .pasteLastTranscription:
             break // handled on keyDown only
         case .recorderToggle:
             break // handled on keyDown only

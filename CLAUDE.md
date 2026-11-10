@@ -8,7 +8,7 @@ Minimal voice dictation for macOS. Hold a hotkey, speak, release — text is ins
 Sotto/
 ├── App/              UserDefaultsKeys, AppConstants, app entry
 ├── Core/             DictationCoordinator, ModelManager, transcription engines, AudioCaptureService, AIService
-├── Indicator/        Floating pill + notch indicators (recording UI)
+├── Indicator/        Floating pill + Dynamic Island indicators (recording UI)
 ├── Resources/        Localizable.xcstrings, sounds, etc.
 ├── Services/         TextInsertionService, HotkeyService, AudioDeviceService
 ├── Settings/         Settings window views (General, Shortcut, Model, Transcribe, AI, About)
@@ -50,6 +50,12 @@ We implemented FluidAudio's `CtcKeywordSpotter` + `VocabularyRescorer` flow (a s
 Net result: 97 MB download + extra runtime cost + extra UI surface for a feature that didn't measurably help users. We removed it and kept only the WhisperKit `promptTokens` path, which is free (no extra model, just a parameter) and works.
 
 **Don't re-add this without a real evaluation showing meaningful improvement on a held-out audio set.** The README example in FluidAudio's docs (`asrManager.transcribe(audioSamples, customVocabulary: ...)`) suggests an easy path that doesn't actually exist on `AsrManager` — only on `SlidingWindowAsrManager`, which is streaming-oriented and wraps the same encoder + rescorer pieces.
+
+## Dynamic Island indicator
+
+`IslandIndicator` grows out of the notch on notched Macs (a cutout at least 150pt wide). Everywhere else, including Dynamic Island Macs with only a camera hole, it's a capsule floating below the top edge. Don't detect Macs by model identifier.
+
+The glass is `IslandGlass`: `NSGlassEffectView` with private `_variant` (11, `bubbles`), `_subvariant` (`siriSnippet`) and `_setPath:`, called through the runtime with type-encoding checks. SwiftUI's `glassEffect` renders frosted in our panel. `IslandPanel` overrides the private `_hasActiveAppearance` hooks, because glass renders flat in a window that never becomes key. Both are private API: fine for Sparkle distribution, not the Mac App Store. Other variants (`dock`, `avplayer`, `controlCenter`, `loupe`) were tried and rejected.
 
 ## Localization
 
