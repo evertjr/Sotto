@@ -128,6 +128,7 @@ final class MLXEngine: TranscriptionEngine {
             temperature: 0.0,
             language: language
         )
+        let context = Self.vocabularyContext()
 
         // The app is LSUIElement, so during push-to-talk it is a background app and
         // eligible for App Nap, which the debugger and an open Settings window both
@@ -146,6 +147,17 @@ final class MLXEngine: TranscriptionEngine {
         let output: STTOutput = await withCheckedContinuation { continuation in
             Self.mlxQueue.async {
                 let audioArray = MLXArray(samples)
+                // Only Qwen3 takes a context. The protocol's generate always passes an empty one.
+                if let qwen = boxedModel.value as? Qwen3ASRModel {
+                    continuation.resume(returning: qwen.generate(
+                        audio: audioArray,
+                        maxTokens: params.maxTokens,
+                        temperature: params.temperature,
+                        context: context,
+                        language: params.language
+                    ))
+                    return
+                }
                 continuation.resume(returning: boxedModel.value.generate(
                     audio: audioArray,
                     generationParameters: params
@@ -166,6 +178,19 @@ final class MLXEngine: TranscriptionEngine {
             detectedLanguage: output.language,
             duration: output.totalTime
         )
+    }
+
+    /// Vocabulary keywords as Qwen3 ASR context, which it was trained to treat as background
+    /// knowledge for the audio. The label matters: a bare list of words did worse than no context
+    /// in TypeWhisper's measurements (typewhisper-mac#321), and only "Technical terms:",
+    /// "Vocabulary:" and "Proper nouns:" helped.
+    private static func vocabularyContext() -> String {
+        let keywords = (UserDefaults.standard.string(forKey: UserDefaultsKeys.vocabularyKeywords) ?? "")
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        guard !keywords.isEmpty else { return "" }
+        return "Vocabulary: \(keywords.joined(separator: ", "))."
     }
 
     /// Single thread for every MLX call. See the note in `transcribe`.
