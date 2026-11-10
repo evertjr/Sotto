@@ -125,7 +125,7 @@ private final class IslandPanel: NSPanel {
 private struct IslandLayout {
     let hasNotch: Bool
     let topInset: CGFloat
-    /// Height of the band at the top that stays solid black, so the island blends into the notch.
+    /// Height of the band at the top that stays solid black, hiding the notch or camera. Content sits below it.
     let solidHeight: CGFloat
     let collapsed: CGSize
     let expanded: CGSize
@@ -136,10 +136,12 @@ private struct IslandLayout {
         guard let notch else {
             hasNotch = false
             topInset = 6
-            solidHeight = 0
+            // On Dynamic Island Macs the camera sits about 16 to 19pt from the top of the screen
+            // (measured from Apple's screenshots), so this band keeps it in solid black, above the waveform.
+            solidHeight = 20
             collapsed = CGSize(width: 80, height: 24)
-            expanded = CGSize(width: 140, height: 50)
-            expandedWithNotice = CGSize(width: 320, height: 48)
+            expanded = CGSize(width: 160, height: 58)
+            expandedWithNotice = CGSize(width: 320, height: 58)
             return
         }
         hasNotch = true
@@ -261,7 +263,7 @@ private struct IslandContainer: View {
     }
 
     var body: some View {
-        let solidFraction = layout.hasNotch ? layout.solidHeight / size.height : 0.15
+        let solidFraction = layout.solidHeight / size.height
 
         ZStack(alignment: .top) {
             IslandSurface(shape: layout.shape(for: size), solidFraction: solidFraction)
