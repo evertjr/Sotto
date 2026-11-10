@@ -6,6 +6,30 @@
     <description>Sotto app updates</description>
     <language>en</language>
     <item>
+      <title>Version 0.1.6</title>
+      <sparkle:version>7</sparkle:version>
+      <sparkle:shortVersionString>0.1.6</sparkle:shortVersionString>
+      <description><![CDATA[
+        <h2>What's New</h2>
+        <ul>
+        <li><strong>Dynamic Island style.</strong> The recording indicator is now a Dynamic Island made of Liquid Glass, in Siri's style. On Macs with a notch it grows out of the notch. On other Macs it floats as a capsule at the top of the screen. The waveform glows and the glass lights up as you speak. It's the new default, and the Floating Pill is still available in General settings.</li>
+        <li><strong>New waveform colors.</strong> Vice, Borealis, Lagoon and Ember drift through their colors while you speak. Pride now uses the full Progress Pride flag.</li>
+        <li><strong>Paste last transcription.</strong> If your text lands in the wrong app, or nowhere, paste it again from the menu bar or with a shortcut you set in the Shortcut tab.</li>
+        <li><strong>Your text no longer gets lost.</strong> If Sotto can't confirm the paste in the focused field, the text stays on your clipboard and the indicator tells you to press ⌘V. Pasting into slower apps is also more reliable.</li>
+        <li><strong>Shortcuts like ⌘E work right away.</strong> Key combinations start working as soon as you grant Accessibility, without relaunching Sotto. Setup now includes an Accessibility step.</li>
+        <li><strong>Errors are visible.</strong> Messages like "Too short" or "No model loaded" now show in the indicator instead of failing silently.</li>
+        </ul>
+        <h2>Upgrade</h2>
+        <p>Sparkle will pick this up automatically on next check, or grab the DMG below.</p>
+      ]]></description>
+      <pubDate>Tue, 10 Nov 2026 00:18:28 +0000</pubDate>
+      <enclosure
+        url="https://github.com/evertjr/Sotto/releases/download/v0.1.6/Sotto-0.1.6.dmg"
+        sparkle:edSignature="Vvt9vjsGttbnaWAZu6egTTQgyjxUB28Alv+Dkl11CRPQo/o0uixTxaoXIJ3HxXsmbs05WUEgdtpWwuQZjdxKAw=="
+        length="37055031"
+        type="application/octet-stream" />
+    </item>
+    <item>
       <title>Version 0.1.5</title>
       <sparkle:version>6</sparkle:version>
       <sparkle:shortVersionString>0.1.5</sparkle:shortVersionString>
